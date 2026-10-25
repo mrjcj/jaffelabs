@@ -1,0 +1,923 @@
+<!doctype html>
+<html lang="en" data-site="1">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Membrane Transport Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: a lab bench. Wide live model on the left, a field-notes panel on the right; a stepper on top walks passive → active → bulk. */
+:root{
+  --bg:#eef3f4; --paper:#ffffff; --ink:#132229; --muted:#56666e; --line:#d3dde0; --soft:#e5eced;
+  --passive:#14808c; --active:#c25a14; --bulk:#7650b4;
+  --ecf:#e1f1f4; --cyto:#fbeee4; --head:#e6aa3c; --head-edge:#b37a18; --tail:#b49c73; --core:#f5e5c0;
+  --label-bg:rgba(255,255,255,.86); --prot-edge:rgba(20,30,40,.4);
+  --chan:#4f7fc4; --aqua:#3fa7c9; --carrier:#2f9a80; --pump:#b4566f; --sym:#9a7a2c;
+  --golgi:#d88a5b; --lyso:#c8a3e2;
+  --o2:#e2474b; --carbon:#46525c; --na:#7a59df; --k:#ef8a2b; --glu:#2ea36a; --water:#3a8ee0; --ins:#e04f8c; --solute:#17a29c; --atp:#f1c232; --bac:#7ea23a; --ldl:#b8752f; --rec:#2f6db0;
+  --f-display:"Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
+  --f-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0b1316; --paper:#121d22; --ink:#e3ecef; --muted:#93a4ab; --line:#26363d; --soft:#1a272d;
+  --passive:#4cc1cc; --active:#f08b47; --bulk:#ad8ce8;
+  --ecf:#0f2a33; --cyto:#2a1d17; --head:#d69a35; --head-edge:#80561a; --tail:#7a6849; --core:#3b3020;
+  --label-bg:rgba(10,18,22,.82); --prot-edge:rgba(0,0,0,.55);
+  --carbon:#8d99a4; --golgi:#c47a4f; --lyso:#7a5a96;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b1316; --paper:#121d22; --ink:#e3ecef; --muted:#93a4ab; --line:#26363d; --soft:#1a272d;
+  --passive:#4cc1cc; --active:#f08b47; --bulk:#ad8ce8;
+  --ecf:#0f2a33; --cyto:#2a1d17; --head:#d69a35; --head-edge:#80561a; --tail:#7a6849; --core:#3b3020;
+  --label-bg:rgba(10,18,22,.82); --prot-edge:rgba(0,0,0,.55);
+  --carbon:#8d99a4; --golgi:#c47a4f; --lyso:#7a5a96;
+  color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5}
+.app{--g:var(--passive);max-width:1240px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+.app[data-group="active"]{--g:var(--active)} .app[data-group="bulk"]{--g:var(--bulk)}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 20px}
+.brand{display:flex;align-items:center;gap:12px}
+.home-row{flex-basis:100%}
+.home-link{display:inline-block;text-decoration:none;font-size:.85rem;padding:6px 12px}
+.leave-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.mark{width:40px;height:40px;flex:none;border-radius:50%;background:
+  radial-gradient(circle at 50% 50%, var(--core) 0 28%, transparent 29%),
+  repeating-conic-gradient(var(--head) 0 12deg, transparent 12deg 30deg);
+  box-shadow:inset 0 0 0 4px var(--bg)}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(1.5rem,3vw,2.1rem);line-height:1.05;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.sub{margin:2px 0 0;color:var(--muted);font-size:.92rem}
+.hint{color:var(--muted);font-size:.85rem;margin:0}
+
+/* stepper */
+.steps-wrap{overflow-x:auto;scrollbar-width:thin;margin-inline:-4px;padding:4px}
+.steps{display:flex;flex-wrap:wrap;gap:10px 14px}
+.grp{flex:1 1 auto;display:flex;flex-direction:column;gap:6px}
+.grp-name{font-size:.72rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--gc)}
+.grp[data-g="passive"]{--gc:var(--passive)} .grp[data-g="active"]{--gc:var(--active)} .grp[data-g="bulk"]{--gc:var(--bulk)} .grp[data-g="review"]{--gc:var(--ink)}
+.grp-row{display:flex;flex-wrap:wrap;gap:6px}
+.step{flex:1 1 auto;white-space:nowrap;display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);font:inherit;font-size:.86rem;font-weight:700;text-align:left;cursor:pointer;line-height:1.2}
+.step:hover{border-color:var(--gc)}
+.step .n{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-family:var(--f-mono);font-size:.75rem;background:var(--soft);color:var(--muted)}
+.step[aria-current="step"]{border-color:var(--gc);box-shadow:inset 0 -3px 0 var(--gc)}
+.step[aria-current="step"] .n{background:var(--gc);color:var(--paper)}
+.step.done .n{background:var(--gc);color:var(--paper)}
+.step:focus-visible,button:focus-visible{outline:3px solid var(--g);outline-offset:2px}
+
+/* main */
+main.lab{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){main.lab{grid-template-columns:minmax(0,1fr)}}
+.viz{display:flex;flex-direction:column;gap:10px;min-width:0}
+.canvas-box{position:relative;width:100%;max-width:100%;aspect-ratio:960/560;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:var(--cyto)}
+#cv{display:block;width:100%;height:100%;touch-action:none}
+#cv.can-grab{cursor:grab} #cv.grabbing{cursor:grabbing}
+.drag-hint{margin-left:auto;font-size:.8rem;color:var(--muted)}
+.celebrate{display:flex;flex-direction:column;gap:4px;padding:16px 18px;border-radius:14px;border:2px solid var(--passive);background:color-mix(in srgb,var(--passive) 10%,var(--paper))}
+.celebrate b{font-family:var(--f-display);font-size:1.5rem;line-height:1.1}
+#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50}
+.intro{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:20px;background:color-mix(in srgb,var(--paper) 72%,transparent);backdrop-filter:blur(3px)}
+.intro h2{font-family:var(--f-display);font-weight:800;font-size:clamp(1.3rem,3.2vw,2.2rem);line-height:1.1;margin:0;max-width:20ch;text-wrap:balance}
+.intro p{margin:0;color:var(--muted);max-width:44ch}
+.big{font:inherit;font-family:var(--f-display);font-weight:800;font-size:1.15rem;padding:12px 30px;border-radius:999px;border:0;background:var(--passive);color:var(--paper);cursor:pointer;display:inline-flex;align-items:center;gap:10px}
+.big:hover{filter:brightness(1.08)}
+.vizbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:inherit;font-size:.92rem;font-weight:700;padding:8px 14px;border-radius:10px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer;line-height:1.2}
+.btn:hover{border-color:var(--g)}
+.btn.primary{background:var(--g);border-color:var(--g);color:var(--paper)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn[aria-pressed="true"]{background:var(--g);border-color:var(--g);color:var(--paper)}
+.btn .k{font-family:var(--f-mono);font-size:.8rem;opacity:.85}
+.sep{flex:1}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;flex-wrap:wrap}
+.seg button{font:inherit;font-size:.88rem;font-weight:700;padding:8px 12px;border:0;background:var(--paper);color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--g);color:var(--paper)}
+
+/* panel */
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.kicker{font-size:.75rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--g);margin:0}
+.panel h2{font-family:var(--f-display);font-weight:800;font-size:1.7rem;line-height:1.08;margin:2px 0 0;text-wrap:balance}
+.idea{margin:0;font-size:1.02rem}
+.watch{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.watch li{display:grid;grid-template-columns:18px minmax(0,1fr);gap:8px;font-size:.93rem;color:var(--ink)}
+.watch li::before{content:"";width:9px;height:9px;margin-top:7px;border-radius:50%;border:2px solid var(--g)}
+.sec-h{font-size:.72rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.keybar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:8px 14px;border:1px solid var(--line);border-radius:12px;background:var(--paper)}
+.keybar .sec-h{margin:0}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px}
+.legend span{display:inline-flex;align-items:center;gap:4px;font-size:.86rem}
+.legend canvas{width:26px;height:26px}
+.key-item{position:relative;display:inline-flex;align-items:center;gap:4px;font:inherit;font-size:.86rem;color:var(--ink);background:none;border:1px solid transparent;border-radius:8px;padding:2px 6px 2px 2px;cursor:pointer}
+.key-item:hover{border-color:var(--line);background:var(--bg)}
+.key-item::after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 6px);transform:translateX(-50%);white-space:nowrap;font-size:.75rem;font-weight:700;padding:4px 8px;border-radius:6px;background:var(--ink);color:var(--paper);pointer-events:none;opacity:0;transition:opacity .12s;z-index:5}
+.key-item:hover::after,.key-item:focus-visible::after{opacity:1}
+.mv{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:color-mix(in srgb,var(--ink) 45%,transparent)}
+.mv-card{position:relative;width:min(640px,100%);max-height:calc(100% - 8px);overflow:auto;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.mv-card h3{margin:0;font-family:var(--f-display);font-size:1.4rem;padding-right:40px}
+.mv-close{position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:50%;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);font-size:1.2rem;line-height:1;cursor:pointer}
+#mvFig{background:var(--bg);border-radius:12px;padding:10px;display:flex;justify-content:center}
+#mvFig svg{width:100%;max-width:480px;height:auto;max-height:52vh}
+#mvFig text{font-family:var(--f-body);font-weight:700;fill:var(--ink)}
+#mvFig text.a-o{fill:var(--o2)} #mvFig text.a-n{fill:var(--water)} #mvFig text.a-p{fill:var(--k)}
+#mvFig text.cap,#mvFig text.lbl{fill:var(--muted);font-weight:600} #mvFig text.band{fill:var(--muted);letter-spacing:.08em}
+.mv-facts{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:.95rem}
+.counters{display:flex;flex-direction:column;gap:6px;font-variant-numeric:tabular-nums}
+.c-head{display:grid;grid-template-columns:88px 78px minmax(0,1fr) 78px;gap:8px;font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.c-head span:nth-child(2){text-align:right}
+.c-row{display:grid;grid-template-columns:88px 78px minmax(0,1fr) 78px;gap:8px;align-items:center;font-size:.9rem}
+.c-name{display:flex;align-items:center;gap:4px;font-weight:700;white-space:nowrap}
+.c-name canvas{width:22px;height:22px;flex:none}
+.c-num{font-family:var(--f-mono);font-weight:700;text-align:right;font-size:.82rem;white-space:nowrap}
+.c-num small{font-weight:500;color:var(--muted);font-size:inherit}
+.c-num.in{text-align:left}
+.bar{height:12px;border-radius:6px;background:var(--cyto);overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;background:var(--ecf);border-right:2px solid var(--muted);transition:width .25s}
+.t-row{display:flex;justify-content:space-between;gap:12px;font-size:.92rem;border-top:1px dashed var(--line);padding-top:6px}
+.t-row b{font-family:var(--f-mono)}
+.quiz{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:8px}
+.quiz h3{margin:0;font-family:var(--f-display);font-size:1.1rem}
+.quiz .q{margin:0;font-weight:700}
+.opts{display:flex;flex-direction:column;gap:6px}
+.opt{font:inherit;font-size:.92rem;text-align:left;padding:9px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.opt:hover:not(:disabled){border-color:var(--g)}
+.opt.right{border-color:#2e9e5b;background:color-mix(in srgb,#2e9e5b 14%,var(--paper))}
+.opt.wrong{border-color:#c94a4a;background:color-mix(in srgb,#c94a4a 12%,var(--paper));text-decoration:line-through}
+.opt:disabled{cursor:default}
+.fb{margin:0;font-size:.92rem;min-height:1.4em}
+.nav{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap}
+
+/* review */
+.review{display:flex;flex-direction:column;gap:22px}
+.review h2{font-family:var(--f-display);font-weight:800;font-size:clamp(1.5rem,3vw,2rem);margin:0}
+.review .lead{margin:0;color:var(--muted);max-width:62ch}
+.sort{display:flex;flex-direction:column;gap:18px}
+.sort .fb{margin-top:10px;font-weight:700}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media (max-width:640px){.cards{grid-template-columns:minmax(0,1fr)}}
+.card{font:inherit;font-size:.95rem;text-align:left;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer}
+.card[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 2px var(--ink)}
+.card.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.bins{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:900px){.bins{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.bins{grid-template-columns:minmax(0,1fr)}}
+.bin{--bc:var(--passive);font:inherit;text-align:left;display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:12px;border:2px dashed color-mix(in srgb,var(--bc) 60%,var(--line));background:color-mix(in srgb,var(--bc) 7%,var(--paper));color:var(--ink);cursor:pointer;min-height:120px}
+.bin[data-k="active"]{--bc:var(--active)} .bin[data-k="bulk"]{--bc:var(--bulk)} .bin[data-k="simple"]{--bc:var(--passive)}
+.bin-name{font-family:var(--f-display);font-weight:800;color:var(--bc)}
+.bin-sub{font-size:.8rem;color:var(--muted);margin-top:-4px}
+.placed{font-size:.84rem;padding:5px 8px;border-radius:7px;background:var(--paper);border:1px solid var(--line)}
+.score{font-family:var(--f-mono);font-weight:700}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:.92rem}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+td:first-child{font-weight:700}
+tr:last-child td{border-bottom:0}
+.tag{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:var(--tc)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+</head>
+<body>
+<div class="app" id="app" data-group="passive">
+  <header class="top">
+    <div class="home-row" id="homeRow" hidden><a class="btn home-link" id="homeLink" href="../index.html">← All labs</a></div>
+    <div class="brand">
+      <div class="mark" aria-hidden="true"></div>
+      <div>
+        <h1>Membrane Transport Lab</h1>
+        <p class="sub">How molecules get into and out of cells · AP Biology Unit 2</p>
+      </div>
+    </div>
+    <p class="hint">Work in order, from passive transport to active transport to bulk transport to wrap-up. Click any stop to jump there.</p>
+  </header>
+
+  <div class="steps-wrap"><nav class="steps" id="steps" aria-label="Lesson stops"></nav></div>
+
+  <main class="lab" id="lab">
+    <section class="viz">
+      <div class="keybar"><p class="sec-h">Key</p><div class="legend" id="legend"></div><span class="drag-hint">Tip: drag any loose molecule to move it, even while paused.</span></div>
+      <div class="canvas-box">
+        <canvas id="cv" role="img" aria-label="Animated model of a cell membrane"></canvas>
+        <div class="intro" id="intro">
+          <h2>What gets through a cell membrane, and how?</h2>
+          <p>Eight live models, from molecules that slip right through, to cells that swallow whole bacteria. Press start, watch, then try the controls.</p>
+          <button class="big" id="startBtn">▶ Start</button>
+        </div>
+      </div>
+      <div class="vizbar">
+        <button class="btn primary" id="playBtn">❚❚ Pause</button>
+        <button class="btn" id="resetBtn">↺ Reset</button>
+        <button class="btn" id="speedBtn" aria-pressed="false">2× speed</button>
+        <span class="sep"></span>
+        <div id="controls" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div>
+        <p class="kicker" id="kicker"></p>
+        <h2 id="title"></h2>
+      </div>
+      <p class="idea" id="idea"></p>
+      <div><p class="sec-h">Watch for</p><ul class="watch" id="watch"></ul></div>
+      <div><p class="sec-h">Live counts</p><div class="counters" id="counters"></div></div>
+      <div class="quiz" id="quiz"></div>
+      <div class="nav"><button class="btn" id="prevBtn">← Back</button><button class="btn primary" id="nextBtn">Next →</button></div>
+    </aside>
+  </main>
+
+  <div class="mv" id="mv" hidden role="dialog" aria-modal="true" aria-labelledby="mvTitle"><div class="mv-card"><button class="mv-close" id="mvClose" type="button" aria-label="Close">×</button><h3 id="mvTitle"></h3><div id="mvFig"></div><ul class="mv-facts" id="mvFacts"></ul></div></div>
+  <div class="mv" id="leave" hidden role="dialog" aria-modal="true" aria-labelledby="leaveTitle"><div class="mv-card" style="width:min(420px,100%)"><h3 id="leaveTitle">Leave this lab?</h3><p style="margin:0">You’ll go back to the list of labs. Your progress here, including check answers and your sort score, won’t be saved.</p><div class="leave-actions"><button class="btn" id="leaveStay" type="button">Stay here</button><a class="btn primary" id="leaveGo" href="../index.html" style="text-decoration:none">Leave lab</a></div></div></div>
+  <section class="review" id="review" hidden>
+    <div>
+      <h2>Sort it out</h2>
+      <p class="lead">Tap a scenario below, then tap the kind of transport above that it shows. Your score counts first tries only.</p>
+    </div>
+    <div class="sort">
+      <div class="celebrate" id="celebrate" hidden><b id="celeTitle"></b><span id="celeText"></span></div>
+      <div><p class="sec-h">Kinds of transport · tap one after choosing a scenario</p><div class="bins" id="bins"></div><p class="fb" id="sortFb" aria-live="polite"></p></div>
+      <div><p class="sec-h">Scenarios · tap one first <span class="score" id="score"></span></p><div class="cards" id="cards"></div></div>
+      <div><button class="btn" id="sortReset">↺ Start over</button></div>
+    </div>
+    <div>
+      <p class="sec-h">The big picture</p>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Type</th><th>Energy (ATP)?</th><th>Protein needed?</th><th>Direction</th><th>Examples from this lab</th></tr></thead>
+        <tbody>
+          <tr><td><span class="tag" style="--tc:var(--passive)"></span>Simple diffusion</td><td>No</td><td>No</td><td>High → low</td><td>O₂ in, CO₂ out</td></tr>
+          <tr><td><span class="tag" style="--tc:var(--passive)"></span>Facilitated diffusion</td><td>No</td><td>Yes: channel or carrier</td><td>High → low</td><td>K⁺ channels, aquaporins, GLUT4</td></tr>
+          <tr><td><span class="tag" style="--tc:var(--active)"></span>Active transport</td><td>Yes, directly (pumps) or through an ion gradient (cotransport)</td><td>Yes: pump or transporter</td><td>Low → high</td><td>Na⁺/K⁺ pump; Na⁺–glucose cotransport (extension)</td></tr>
+          <tr><td><span class="tag" style="--tc:var(--bulk)"></span>Bulk transport</td><td>Yes</td><td>No tunnel; the membrane itself forms vesicles</td><td>In (endocytosis) or out (exocytosis)</td><td>Insulin release, phagocytosis, pinocytosis, receptor-mediated endocytosis of LDL</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <div class="nav"><button class="btn" id="revBack">← Back to Receptor-mediated</button><button class="btn" id="revStart">Start the lab over</button></div>
+  </section>
+</div>
+
+<script>
+(()=>{
+const $=s=>document.querySelector(s);
+const W=960,H=560,M=300,T=44,HT=22,yTop=M-HT,yBot=M+HT;
+const rand=Math.random, lerp=(a,b,t)=>a+(b-a)*t, clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const ease=t=>{t=clamp(t,0,1);return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2};
+const gauss=(x,c,s)=>Math.exp(-((x-c)*(x-c))/(2*s*s));
+const C={};
+const CK=['ecf','cyto','head','head-edge','tail','core','ink','muted','label-bg','prot-edge','chan','aqua','carrier','pump','sym','golgi','lyso','o2','carbon','na','k','glu','water','ins','solute','atp','bac','ldl','rec','paper'];
+function readColors(){const cs=getComputedStyle(document.documentElement);CK.forEach(k=>C[k.replace(/-(\w)/g,(m,c)=>c.toUpperCase())]=cs.getPropertyValue('--'+k).trim());}
+readColors();
+
+const PT={o2:{r:9,lipid:true},co2:{r:11,lipid:true},na:{r:7},k:{r:8},glu:{r:10},h2o:{r:7,leak:.03},ins:{r:6},dot:{r:4},ldl:{r:9}};
+const NAMES={o2:'O₂',co2:'CO₂',na:'Na⁺',k:'K⁺',glu:'Glucose',h2o:'Water',ins:'Insulin',dot:'Solute',ldl:'LDL (cholesterol)'};
+
+/* ---------- canvas setup ---------- */
+const cv=$('#cv'), ctx=cv.getContext('2d');
+let scale=1,dpr=1;
+function resize(){const w=cv.clientWidth||960;dpr=window.devicePixelRatio||1;scale=w/W;cv.width=Math.round(w*dpr);cv.height=Math.round(w*H/W*dpr);}
+new ResizeObserver(resize).observe(cv); resize();
+
+/* ---------- glyphs ---------- */
+function dot(g,x,y,r,f,edge=true){g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.fillStyle=f;g.fill();if(edge){g.lineWidth=1;g.strokeStyle='rgba(0,0,0,.3)';g.stroke();}}
+function plus(g,x,y,s){g.strokeStyle='#fff';g.lineWidth=1.8;g.beginPath();g.moveTo(x-s,y);g.lineTo(x+s,y);g.moveTo(x,y-s);g.lineTo(x,y+s);g.stroke();}
+function drawGlyph(g,t,x,y){
+  switch(t){
+    case 'o2': dot(g,x-4,y,5,C.o2); dot(g,x+4,y,5,C.o2); break;
+    case 'co2': dot(g,x-7,y,4.3,C.o2); dot(g,x+7,y,4.3,C.o2); dot(g,x,y,5.3,C.carbon); break;
+    case 'na': dot(g,x,y,7,C.na); plus(g,x,y,3); break;
+    case 'k': dot(g,x,y,8,C.k); plus(g,x,y,3.4); break;
+    case 'glu': {g.beginPath();for(let i=0;i<6;i++){const a=Math.PI/3*i+Math.PI/6;const px=x+Math.cos(a)*9.6,py=y+Math.sin(a)*9.6;i?g.lineTo(px,py):g.moveTo(px,py);}g.closePath();g.fillStyle=C.glu;g.fill();g.strokeStyle='rgba(0,0,0,.3)';g.lineWidth=1;g.stroke();dot(g,x,y,2.4,'rgba(255,255,255,.7)',false);break;}
+    case 'h2o': dot(g,x,y,5.4,C.water); dot(g,x-5,y+3.6,2.7,'#fff'); dot(g,x+5,y+3.6,2.7,'#fff'); break;
+    case 'ins': dot(g,x-2.8,y-1.6,3.2,C.ins); dot(g,x+2.8,y-1.6,3.2,C.ins); dot(g,x,y+2.8,3.2,C.ins); break;
+    case 'dot': dot(g,x,y,3.8,C.solute); break;
+    case 'lipid': g.strokeStyle=C.tail;g.lineWidth=1.6;g.beginPath();g.moveTo(x-2.5,y-2);g.lineTo(x-2.5,y+10);g.moveTo(x+2.5,y-2);g.lineTo(x+3.5,y+4);g.lineTo(x+2,y+10);g.stroke();dot(g,x,y-5,5,C.head);break;
+    case 'ldl': dot(g,x,y,9,C.ldl); for(let i=0;i<5;i++)dot(g,x+Math.cos(i*1.26)*5,y+Math.sin(i*1.26)*5,1.6,'rgba(255,255,255,.75)',false); break;
+  }
+}
+function glyphCanvas(t,size=26){const c=document.createElement('canvas');const d=window.devicePixelRatio||1;c.width=size*d;c.height=size*d;const g=c.getContext('2d');g.setTransform(d,0,0,d,0,0);drawGlyph(g,t,size/2,size/2);c.dataset.t=t;return c;}
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function label(text,x,y,o={}){
+  const size=o.size||14, align=o.align||'center';
+  ctx.font=`${o.weight||700} ${size}px "Atkinson Hyperlegible", system-ui, sans-serif`;
+  const w=ctx.measureText(text).width; const lx=align==='center'?x-w/2:align==='left'?x:x-w;
+  if(o.bg!==false){ctx.fillStyle=C.labelBg;rr(lx-7,y-size*.72-5,w+14,size+10,8);ctx.fill();}
+  ctx.fillStyle=o.color||C.ink; ctx.textBaseline='alphabetic'; ctx.fillText(text,lx,y+size*.32);
+}
+function pill(x,y,text,fill){ctx.font='700 12px "JetBrains Mono", monospace';const w=ctx.measureText(text).width+14;ctx.fillStyle=fill;rr(x-w/2,y-10,w,20,10);ctx.fill();ctx.strokeStyle='rgba(0,0,0,.25)';ctx.lineWidth=1;ctx.stroke();ctx.fillStyle='#2d2100';ctx.textBaseline='middle';ctx.fillText(text,x-w/2+7,y+1);ctx.textBaseline='alphabetic';}
+
+/* ---------- membrane drawing ---------- */
+function drawLipids(L,gaps){
+  const off=HT-5;
+  ctx.strokeStyle=C.tail;ctx.lineWidth=1.5;ctx.beginPath();
+  for(const [x,y,tx,ty] of L){
+    if(gaps.some(g=>x>g[0]&&x<g[1]))continue;
+    const nx=ty,ny=-tx;
+    for(const s of [1,-1]){const hx=x+nx*off*s,hy=y+ny*off*s;
+      for(const o of [-2.3,2.3]){ctx.moveTo(hx+tx*o,hy+ty*o);ctx.lineTo(x+nx*2.5*s+tx*o*.8,y+ny*2.5*s+ty*o*.8);}}
+  }
+  ctx.stroke();
+  ctx.fillStyle=C.head;ctx.strokeStyle=C.headEdge;ctx.lineWidth=1;
+  for(const [x,y,tx,ty] of L){
+    if(gaps.some(g=>x>g[0]&&x<g[1]))continue;
+    const nx=ty,ny=-tx;
+    for(const s of [1,-1]){ctx.beginPath();ctx.arc(x+nx*off*s,y+ny*off*s,4.6,0,Math.PI*2);ctx.fill();ctx.stroke();}
+  }
+}
+function curvePts(prof){const pts=[];for(let x=-24;x<=W+24;x+=3)pts.push([x,M+prof(x)]);return pts;}
+function background(prof){
+  ctx.fillStyle=C.cyto;ctx.fillRect(0,0,W,H);
+  const pts=curvePts(prof);ctx.fillStyle=C.ecf;ctx.beginPath();ctx.moveTo(-24,-24);
+  for(const p of pts)ctx.lineTo(p[0],p[1]);ctx.lineTo(W+24,-24);ctx.closePath();ctx.fill();
+}
+function drawMembrane(prof,gaps=[]){
+  const pts=curvePts(prof);
+  ctx.lineJoin='round';ctx.lineCap='butt';ctx.strokeStyle=C.core;ctx.lineWidth=T-8;ctx.beginPath();
+  pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.stroke();
+  const L=[];let acc=0,next=0;
+  for(let i=1;i<pts.length;i++){const[x0,y0]=pts[i-1],[x1,y1]=pts[i];const d=Math.hypot(x1-x0,y1-y0);
+    while(next<=acc+d){const f=(next-acc)/d;L.push([x0+(x1-x0)*f,y0+(y1-y0)*f,(x1-x0)/d,(y1-y0)/d]);next+=10.5;}acc+=d;}
+  drawLipids(L,gaps);
+}
+function drawVesicle(x,y,R,fill,alpha=1){
+  ctx.save();ctx.globalAlpha=alpha;
+  ctx.fillStyle=fill;ctx.beginPath();ctx.arc(x,y,R-HT+4,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle=C.core;ctx.lineWidth=T-8;ctx.beginPath();ctx.arc(x,y,R,0,Math.PI*2);ctx.stroke();
+  const n=Math.max(10,Math.round(2*Math.PI*R/11));const L=[];
+  for(let i=0;i<n;i++){const a=i/n*Math.PI*2;L.push([x+Math.cos(a)*R,y+Math.sin(a)*R,Math.sin(a),-Math.cos(a)]);}
+  drawLipids(L,[]);ctx.restore();
+}
+function organelle(x,y,R,fill,ring,alpha=1){ctx.save();ctx.globalAlpha=alpha;ctx.beginPath();ctx.arc(x,y,R,0,Math.PI*2);ctx.fillStyle=fill;ctx.fill();ctx.lineWidth=5;ctx.strokeStyle=ring;ctx.stroke();ctx.restore();}
+
+/* ---------- proteins ---------- */
+function helices(x0,x1,top,bot){ctx.save();ctx.globalAlpha=.17;ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.beginPath();for(const f of [.35,.7]){const xx=lerp(x0,x1,f);ctx.moveTo(xx,top+6);ctx.lineTo(xx,bot-6);}ctx.stroke();ctx.restore();}
+function drawChannel(pr){
+  const col=pr.sub==='aqua'?C.aqua:C.chan, g2=pr.gap/2, lw=(pr.w-pr.gap)/2, top=yTop-8, h=T+16;
+  for(const d of [-1,1]){const x0=d<0?pr.x-g2-lw:pr.x+g2;ctx.fillStyle=col;rr(x0,top,lw,h,8);ctx.fill();ctx.strokeStyle=C.protEdge;ctx.lineWidth=1;ctx.stroke();helices(x0,x0+lw,top,top+h);}
+}
+function drawTransporter(x,s,w,open,col){
+  const top=yTop-8,bot=yBot+8,hw=w/2,ti=3+open*Math.max(s,0),bi=3+open*Math.max(-s,0);
+  ctx.fillStyle=col;ctx.strokeStyle=col;ctx.lineWidth=8;ctx.lineJoin='round';
+  for(const d of [-1,1]){ctx.beginPath();ctx.moveTo(x+d*(hw-4),top+4);ctx.lineTo(x+d*(ti+4),top+4);ctx.lineTo(x+d*7,M);ctx.lineTo(x+d*(bi+4),bot-4);ctx.lineTo(x+d*(hw-4),bot-4);ctx.closePath();ctx.fill();ctx.stroke();
+    helices(d<0?x-hw:x+hw*.25,d<0?x-hw*.25:x+hw,top,bot);}
+}
+function drawProt(pr){
+  if(pr.kind==='channel')drawChannel(pr);
+  else if(pr.kind==='carrier')drawTransporter(pr.x,pr.s,pr.w,13,C.carrier);
+  else if(pr.kind==='sym'){drawTransporter(pr.x,pr.s,pr.w,20,C.sym);
+    if(pr.phase==='flip'&&!pr.loaded)label('empty, switching sides',pr.x,pr.s>0?yBot+64:yTop-30,{size:11.5});
+    if(pr.phase==='open'){const y=M-10*pr.s;ctx.lineWidth=1.5;ctx.setLineDash([3,3]);if(!pr.na){ctx.strokeStyle=C.na;ctx.beginPath();ctx.arc(pr.x-10,y,8,0,7);ctx.stroke();}if(pr.na&&!pr.gl){ctx.strokeStyle=C.glu;ctx.beginPath();ctx.arc(pr.x+11,y,10,0,7);ctx.stroke();}ctx.setLineDash([]);}}
+  else if(pr.kind==='pump'){drawTransporter(pr.x,pr.s,pr.w,24,C.pump);
+    const st=pumpSites(pr);ctx.lineWidth=1.5;ctx.setLineDash([3,3]);
+    if(pr.phase==='ready'){ctx.strokeStyle=C.na;st.na.forEach(p=>{ctx.beginPath();ctx.arc(p[0],p[1],8,0,7);ctx.stroke();});}
+    if(pr.phase==='waitK'){ctx.strokeStyle=C.k;st.k.forEach(p=>{ctx.beginPath();ctx.arc(p[0],p[1],9,0,7);ctx.stroke();});}
+    ctx.setLineDash([]);
+    if(pr.phos){dot(ctx,pr.x+pr.w/2-12,yBot+2,8,C.atp);ctx.fillStyle='#2d2100';ctx.font='700 11px "JetBrains Mono", monospace';ctx.textBaseline='middle';ctx.fillText('P',pr.x+pr.w/2-15.5,yBot+3);ctx.textBaseline='alphabetic';}
+    if(pr.phase==='bindNa'){const f=ease(pr.t/48);pill(pr.x+pr.w/2+18,lerp(H-24,yBot+18,f),'ATP',C.atp);}
+  }
+  if(pr.label)label(pr.label,pr.x,yBot+(pr.kind==='pump'?44:36),{size:12.5});
+}
+
+/* ---------- particles ---------- */
+function P(t,x,y){return{t,x,y,r:PT[t].r,vx:(rand()-.5)*2,vy:(rand()-.5)*2,held:null,pore:null};}
+function spawn(arr,t,side,n,xr=[24,W-24]){const r=PT[t].r;for(let i=0;i<n;i++){const x=xr[0]+rand()*(xr[1]-xr[0]);const y=side==='out'?40+rand()*(yTop-62-r):yBot+22+r+rand()*(H-yBot-56-2*r);arr.push(P(t,x,y));}}
+function topLimit(x){for(const pr of S.prots)if(Math.abs(x-pr.x)<pr.w/2)return yTop-8;return yTop;}
+function botLimit(x){for(const pr of S.prots)if(Math.abs(x-pr.x)<pr.w/2)return yBot+8;return yBot;}
+function poreAt(x,t){return S.prots.find(pr=>pr.kind==='channel'&&pr.t===t&&Math.abs(x-pr.x)<pr.gap/2+9);}
+function jiggle(p,dt){const J=.42;p.vx+=(rand()-.5)*J*dt;p.vy+=(rand()-.5)*J*dt;const sp=Math.hypot(p.vx,p.vy),mx=1.9;if(sp>mx){p.vx*=mx/sp;p.vy*=mx/sp;}}
+function stepP(p,dt){
+  if(p.cool>0)p.cool-=dt;
+  if(p.held)return;
+  jiggle(p,dt);
+  let nx=p.x+p.vx*dt,ny=p.y+p.vy*dt;const r=p.r;
+  if(nx<r){nx=r;p.vx=Math.abs(p.vx);}if(nx>W-r){nx=W-r;p.vx=-Math.abs(p.vx);}
+  if(ny<r){ny=r;p.vy=Math.abs(p.vy);}if(ny>H-r){ny=H-r;p.vy=-Math.abs(p.vy);}
+  const ty=PT[p.t];
+  if(p.pore){if(p.pore.x!=null)nx=lerp(nx,p.pore.x,.35);if(ny+r<yTop-9||ny-r>yBot+9)p.pore=null;}
+  else if(!ty.lipid){
+    const out=p.y<M;
+    if(out&&ny+r>topLimit(nx)){const pr=poreAt(nx,p.t);if(pr)p.pore=pr;else if(ty.leak&&rand()<ty.leak)p.pore={x:null};else{ny=topLimit(nx)-r;p.vy=-Math.abs(p.vy)*.9;}}
+    else if(!out&&ny-r<botLimit(nx)){const pr=poreAt(nx,p.t);if(pr)p.pore=pr;else if(ty.leak&&rand()<ty.leak)p.pore={x:null};else{ny=botLimit(nx)+r;p.vy=Math.abs(p.vy)*.9;}}
+  }
+  p.x=nx;p.y=ny;
+}
+function grab(p,h){p.held=h;p.from=[p.x,p.y];p.bt=0;p.pore=null;}
+function follow(p,site,dt,dur=40){p.bt=Math.min(1,p.bt+dt/dur);const f=ease(p.bt);p.x=lerp(p.from[0],site[0],f);p.y=lerp(p.from[1],site[1],f);}
+function release(p,dir){p.held=null;p.vx=(rand()-.5)*1.4;p.vy=dir*(1.3+rand()*.6);p.y=dir<0?Math.min(p.y,yTop-9-p.r):Math.max(p.y,yBot+9+p.r);}
+function nearest(t,outside,x,y,n){return S.parts.filter(p=>p.t===t&&!p.held&&!p.pore&&!(p.cool>0)&&(outside?p.y<M:p.y>M)).sort((a,b)=>Math.hypot(a.x-x,a.y-y)-Math.hypot(b.x-x,b.y-y)).slice(0,n);}
+function count(t){let o=0,i=0;for(const p of S.parts)if(p.t===t){p.y<M?o++:i++;}return[o,i];}
+function float(x,y,text,col){S.floats.push({x,y,text,col,t:0});}
+function say(text){S.msg={text,t:200};}
+function drawFloats(dt){for(const f of S.floats){f.t+=dt;ctx.save();ctx.globalAlpha=clamp(1-f.t/110,0,1);label(f.text,f.x,f.y-f.t*.35,{size:12,color:f.col||C.ink});ctx.restore();}S.floats=S.floats.filter(f=>f.t<110);}
+function drawMsg(dt){if(!S.msg)return;S.msg.t-=dt;ctx.save();ctx.globalAlpha=clamp(S.msg.t/30,0,1);label(S.msg.text,W/2,58,{size:15});ctx.restore();if(S.msg.t<=0)S.msg=null;}
+function regions(inLeft=true){label('OUTSIDE THE CELL · extracellular fluid',16,24,{align:'left',size:12.5,color:C.muted});label('INSIDE THE CELL · cytoplasm',inLeft?16:W-16,H-20,{align:inLeft?'left':'right',size:12.5,color:C.muted});}
+
+/* ---------- carriers ---------- */
+function carrierUpdate(c,dt){
+  if(c.cargo)follow(c.cargo,[c.x,M-8*c.s],dt,24);
+  if(c.phase==='idle'){
+    c.cool-=dt;c.idle-=dt;const out=c.s>0;
+    if(c.cool<=0&&!c.cargo){const sy=out?yTop-8:yBot+8;const cand=nearest(c.t,out,c.x,sy,1)[0];
+      if(cand&&Math.hypot(cand.x-c.x,cand.y-sy)<30){grab(cand,c);c.cargo=cand;c.phase='hold';c.tt=0;return;}}
+    if(c.idle<=0&&!c.cargo&&c.ret){c.ret=false;c.phase='flip';c.tt=0;c.s0=c.s;}
+  }else if(c.phase==='hold'){c.tt+=dt;if(c.tt>24){c.phase='flip';c.tt=0;c.s0=c.s;}}
+  else if(c.phase==='flip'){c.tt+=dt/(c.cargo?38:70);c.s=lerp(c.s0,-c.s0,ease(c.tt));
+    if(c.tt>=1){c.s=-c.s0;c.phase='idle';c.idle=60+rand()*60;c.cool=30;if(c.cargo){release(c.cargo,c.s>0?-1:1);c.cargo=null;c.ret=true;}}}
+}
+function pumpSites(pm){const y=M-10*pm.s;return{na:[[pm.x-13,y],[pm.x+13,y],[pm.x,y-11*pm.s]],k:[[pm.x-11,y],[pm.x+11,y]]};}
+function makePump(x,auto){return{kind:'pump',x,w:84,s:-1,phase:'ready',t:0,queue:0,na:[],k:[],phos:false,auto,on:true,autoT:30,label:'Na⁺/K⁺ pump',waitSaid:false};}
+function pumpUpdate(pm,dt){
+  pm.t+=dt;const st=pumpSites(pm);
+  pm.na.forEach((p,i)=>follow(p,st.na[i],dt,46));pm.k.forEach((p,i)=>follow(p,st.k[i],dt,46));
+  switch(pm.phase){
+    case 'ready':pm.s=-1;
+      if(pm.auto&&pm.on){pm.autoT-=dt;if(pm.autoT<=0&&pm.queue===0){pm.queue=1;pm.autoT=55;}}
+      if(pm.queue>0){const c=nearest('na',false,pm.x,yBot+10,3);
+        if(c.length<3){if(!pm.auto)say('Not enough Na⁺ left inside to fill the pump.');pm.queue=0;break;}
+        pm.queue--;c.forEach(p=>grab(p,pm));pm.na=c;pm.phase='bindNa';pm.t=0;}
+      break;
+    case 'bindNa':if(pm.t>48){pm.phase='phos';pm.t=0;pm.phos=true;S.atpUsed++;float(pm.x+pm.w/2+40,yBot+40,'ATP → ADP + P',C.ink);}break;
+    case 'phos':if(pm.t>24){pm.phase='flipOut';pm.t=0;}break;
+    case 'flipOut':pm.s=lerp(-1,1,ease(pm.t/40));if(pm.t>=40){pm.s=1;pm.na.forEach(p=>release(p,-1));pm.na=[];pm.phase='waitK';pm.t=0;}break;
+    case 'waitK':{const c=nearest('k',true,pm.x,yTop-10,2);if(c.length===2){c.forEach(p=>grab(p,pm));pm.k=c;pm.phase='bindK';pm.t=0;pm.waitSaid=false;}
+      else if(!pm.waitSaid&&pm.t>60&&!pm.auto){say('Waiting for 2 K⁺ outside to bind.');pm.waitSaid=true;}}break;
+    case 'bindK':if(pm.t>48){pm.phase='dephos';pm.t=0;pm.phos=false;float(pm.x+pm.w/2+30,yBot+40,'P released',C.ink);}break;
+    case 'dephos':if(pm.t>18){pm.phase='flipIn';pm.t=0;}break;
+    case 'flipIn':pm.s=lerp(1,-1,ease(pm.t/40));if(pm.t>=40){pm.s=-1;pm.k.forEach(p=>release(p,1));pm.k=[];pm.phase='ready';pm.t=0;pm.cycles=(pm.cycles||0)+1;}break;
+  }
+}
+function symUpdate(sy,dt){
+  /* Ordered binding: Na+ binds first, then glucose; only molecules that reach the site can bind.
+     An empty carrier switches sides only after waiting a while with nothing bound. */
+  sy.t+=dt;const y=M-10*sy.s,out=sy.s>0,sy0=out?yTop-10:yBot+10,R=34;
+  if(sy.na)follow(sy.na,[sy.x-10,y],dt,24);if(sy.gl)follow(sy.gl,[sy.x+11,y],dt,24);
+  if(sy.phase==='open'){
+    if(!sy.na){
+      const c=nearest('na',out,sy.x-10,sy0,1)[0];
+      if(c&&Math.hypot(c.x-sy.x+10,c.y-sy0)<R){grab(c,sy);sy.na=c;sy.naT=0;}
+      else{sy.idle-=dt;if(sy.idle<=0){sy.phase='flip';sy.t=0;sy.s0=sy.s;sy.loaded=false;}}
+    }else if(!sy.gl){
+      sy.naT+=dt;
+      if(sy.na.bt>=1){const c=nearest('glu',out,sy.x+11,sy0,1)[0];if(c&&Math.hypot(c.x-sy.x-11,c.y-sy0)<R){grab(c,sy);sy.gl=c;}}
+      if(!sy.gl&&sy.naT>420){release(sy.na,out?-1:1);sy.na.cool=60;sy.na=null;sy.idle=Math.max(sy.idle,60);}
+    }else if(sy.na.bt>=1&&sy.gl.bt>=1){sy.phase='flip';sy.t=0;sy.s0=sy.s;sy.loaded=true;}
+  }else if(sy.phase==='flip'){const dur=sy.loaded?40:90;sy.s=lerp(sy.s0,-sy.s0,ease(sy.t/dur));
+    if(sy.t>=dur){sy.s=-sy.s0;sy.phase='open';sy.t=0;sy.idle=330;
+      if(sy.loaded){const d=sy.s>0?-1:1;release(sy.na,d);release(sy.gl,d);sy.na.cool=sy.gl.cool=90;sy.na=sy.gl=null;S.moved+=sy.s>0?-1:1;}}}
+}
+
+/* ---------- bulk helpers ---------- */
+function stepOut(p,dt,prof){
+  if(p.ves||p.held)return;jiggle(p,dt);
+  let nx=p.x+p.vx*dt,ny=p.y+p.vy*dt;const r=p.r;
+  if(nx<r){nx=r;p.vx=Math.abs(p.vx);}if(nx>W-r){nx=W-r;p.vx=-Math.abs(p.vx);}
+  if(ny<r){ny=r;p.vy=Math.abs(p.vy);}
+  const lim=yTop+prof(nx)-r;if(ny>lim){ny=lim;p.vy=-Math.abs(p.vy);}
+  p.x=nx;p.y=ny;
+}
+function inVes(p,v,dt){const Rin=v.R-HT-p.r+2;p.ox+=(rand()-.5)*.7*dt;p.oy+=(rand()-.5)*.7*dt;const d=Math.hypot(p.ox,p.oy);if(d>Rin){p.ox*=Rin/d;p.oy*=Rin/d;}p.x=v.x+p.ox;p.y=v.y+p.oy;}
+
+/* ================= STAGES ================= */
+let S={};
+const STAGES=[
+{ id:'simple',group:'passive',short:'Simple diffusion',kicker:'Passive transport · no energy',title:'Simple diffusion',
+  idea:'Small, nonpolar molecules like O₂ and CO₂ slip straight between the phospholipids, moving from high concentration (crowded) to low concentration (scarce). They can pass because the middle of the bilayer is made of nonpolar fatty acid tails, and nonpolar molecules mix easily with that hydrophobic core. Being small helps them squeeze between the lipids.',
+  watch:['O₂ moves in and CO₂ moves out, each down its own concentration gradient.','Na⁺ and glucose bounce off. Ions and large polar molecules can’t cross the nonpolar tails in the middle of the bilayer.','When the counts even out, molecules still cross both ways. Net movement stops: dynamic equilibrium.'],
+  legend:['o2','co2','na','glu'],
+  init(){S={parts:[],prots:[],floats:[],msg:null};spawn(S.parts,'o2','out',28);spawn(S.parts,'o2','in',4);spawn(S.parts,'co2','out',4);spawn(S.parts,'co2','in',24);spawn(S.parts,'na','out',10);spawn(S.parts,'glu','out',8);},
+  update(dt){S.parts.forEach(p=>stepP(p,dt));},
+  draw(dt){const f=()=>0;background(f);drawMembrane(f);S.parts.forEach(p=>drawGlyph(ctx,p.t,p.x,p.y));regions();label('phospholipid bilayer',W-16,yBot+34,{align:'right',size:12.5});drawFloats(dt);drawMsg(dt);},
+  controls(el){el.append(btn('+10 O₂ outside',()=>spawn(S.parts,'o2','out',10)),btn('+10 Na⁺ outside',()=>spawn(S.parts,'na','out',10)));},
+  counters(){return['o2','co2','na','glu'].map(t=>({kind:'grad',t,get:()=>count(t)}));},
+  quiz:{q:'A Na⁺ ion keeps bouncing off the bare bilayer. What stops it?',opts:['It is too large to fit between phospholipids','Its charge can’t pass through the nonpolar fatty acid tails','The cell has run out of ATP','Na⁺ is already at equilibrium'],a:1,
+    why:'Ions are charged, and the core of the bilayer is made of nonpolar tails. Even a small ion is blocked unless a protein gives it a path.'}},
+
+{ id:'facil',group:'passive',short:'Facilitated diffusion',kicker:'Passive transport · no energy',title:'Facilitated diffusion',
+  idea:'Ions and large polar molecules need a protein door. Each door is specific: its shape, size and charge match one kind of cargo. Different cells build different doors, so each cell lets in different things.',
+  watch:['Switch cells. The molecules stay the same, the proteins change, and so does what gets through.','Channels are open tunnels. A carrier is open to only one side at a time: it binds a molecule, changes shape, and releases it on the other side. After dropping off its glucose, it flips back empty, which resets it to pick up the next one.','Specificity is about chemistry, not just size. A K⁺ ion and a water molecule are about the same size. The K⁺ channel’s narrow filter is lined with oxygen atoms spaced to grip a K⁺ ion; that grip only works for K⁺, so Na⁺ and water don’t flow through it. An aquaporin’s narrow pore lets water pass single file, and charges in the pore keep ions out.','Everything still moves high → low. No ATP is used.','Water trickles through the bilayer slowly on its own. Aquaporins make it fast.'],
+  legend:['k','h2o','glu','na'], cell:'neuron',
+  init(){S={parts:[],prots:[],floats:[],msg:null};const c=this.cell;
+    spawn(S.parts,'k','in',18);spawn(S.parts,'k','out',4);spawn(S.parts,'h2o','out',22);spawn(S.parts,'h2o','in',6);spawn(S.parts,'glu','out',14);spawn(S.parts,'glu','in',2);spawn(S.parts,'na','out',8);
+    for(const x of [300,660]){
+      if(c==='neuron')S.prots.push({kind:'channel',sub:'k',t:'k',x,w:58,gap:18,label:'K⁺ channel'});
+      if(c==='kidney')S.prots.push({kind:'channel',sub:'aqua',t:'h2o',x,w:54,gap:16,label:'Aquaporin (H₂O channel)'});
+      if(c==='muscle')S.prots.push({kind:'carrier',t:'glu',x,w:62,s:1,phase:'idle',idle:0,cool:0,cargo:null,ret:false,label:'GLUT4 carrier'});
+    }},
+  update(dt){S.parts.forEach(p=>stepP(p,dt));S.prots.forEach(pr=>{if(pr.kind==='carrier')carrierUpdate(pr,dt);});},
+  draw(dt){const f=()=>0;background(f);drawMembrane(f,S.prots.map(p=>[p.x-p.w/2-3,p.x+p.w/2+3]));S.prots.forEach(drawProt);S.parts.forEach(p=>drawGlyph(ctx,p.t,p.x,p.y));regions();
+    const nm={neuron:'Model neuron',kidney:'Model kidney cell',muscle:'Model muscle cell'}[this.cell];label(nm,W-16,24,{align:'right',size:13});drawFloats(dt);drawMsg(dt);},
+  controls(el){const seg=document.createElement('div');seg.className='seg';seg.setAttribute('role','group');seg.setAttribute('aria-label','Choose a cell');
+    [['neuron','Neuron'],['kidney','Kidney cell'],['muscle','Muscle cell']].forEach(([k,n])=>{const b=document.createElement('button');b.textContent=n;b.setAttribute('aria-pressed',this.cell===k);b.onclick=()=>{this.cell=k;seg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));this.init();};seg.append(b);});el.append(seg);},
+  counters(){return['k','h2o','glu','na'].map(t=>({kind:'grad',t,get:()=>count(t)}));},
+  quiz:{q:'In the model neuron, glucose piles up outside and never gets in. What would let it in without spending ATP?',opts:['More K⁺ channels','A glucose carrier protein like GLUT4','A Na⁺/K⁺ pump','A thicker membrane'],a:1,
+    why:'Transport proteins are specific. Glucose needs its own carrier, and because it moves high → low, no ATP is needed.'}},
+
+{ id:'pump',group:'active',short:'Na⁺/K⁺ pump',kicker:'Active transport · uses ATP',title:'The sodium–potassium pump',
+  idea:'Pumps move ions from low to high concentration, against the concentration gradient, which requires energy. Each ATP changes the protein pump’s shape: 3 Na⁺ go out, 2 K⁺ come in.',
+  watch:['Give the pump one ATP and follow a full cycle.','The phosphate (P) from ATP is what flips the pump open to the outside.','Keep feeding it after Na⁺ is already higher outside. The pump keeps working uphill. That is what the ATP pays for.','Each cycle moves one more + charge out than in (3 out, 2 in). Over many cycles, the outside becomes more positive and the inside more negative. The membrane is now polarized.','Opposite charges attract, so keeping them apart stores energy, like water held behind a dam. That stored push on charges is called voltage. The voltage across a cell membrane is the membrane potential. The pump helps maintain it, and neurons use it to send signals.'],
+  legend:['na','k'],
+  init(){S={parts:[],prots:[],floats:[],msg:null,atpUsed:0};spawn(S.parts,'na','in',15);spawn(S.parts,'na','out',9);spawn(S.parts,'k','out',14);spawn(S.parts,'k','in',8);S.pump=makePump(W/2,false);S.prots.push(S.pump);},
+  update(dt){S.parts.forEach(p=>stepP(p,dt));pumpUpdate(S.pump,dt);},
+  draw(dt){const f=()=>0;background(f);drawMembrane(f,[[S.pump.x-46,S.pump.x+46]]);drawProt(S.pump);S.parts.forEach(p=>drawGlyph(ctx,p.t,p.x,p.y));regions();
+    const [no,ni]=count('na');if(no>ni&&(S.pump.cycles||0)>0)label('Na⁺ is now higher outside: the pump is working uphill',W-16,24,{align:'right',size:12.5,color:C.ink});
+    if(S.pump.phase==='ready'&&S.pump.queue===0&&!S.atpUsed)label('Press “Give 1 ATP” to run the pump',W/2,H-20,{size:13});
+    drawFloats(dt);drawMsg(dt);},
+  controls(el){el.append(btn('Give 1 ATP',()=>{S.pump.queue++;}),btn('Give 5 ATP',()=>{S.pump.queue+=5;}));},
+  counters(){return[{kind:'grad',t:'na',get:()=>count('na')},{kind:'grad',t:'k',get:()=>count('k')},{kind:'tally',label:'ATP spent',get:()=>S.atpUsed},{kind:'tally',label:'ATP waiting',get:()=>S.pump.queue}];},
+  quiz:{q:'After several cycles Na⁺ is already higher outside, yet the pump still moves more Na⁺ out. How?',opts:['Na⁺ diffuses out on its own','Energy from ATP changes the pump’s shape','The pump is a channel that stays open','K⁺ pushes Na⁺ out of the way'],a:1,
+    why:'Phosphate from ATP attaches to the pump and changes its shape. That energy is what lets it move ions against their gradient.'}},
+
+{ id:'cotransport',group:'active',short:'Cotransport',kicker:'Active transport · extension beyond the AP CED',title:'Cotransport',
+  idea:'In an intestine cell, a transporter lets Na⁺ flow down its gradient and uses that flow to drag glucose up (against) its gradient.',
+  watch:['Glucose starts even on both sides. Watch it pile up inside. That is uphill.','The pump spends ATP to keep Na⁺ low inside. The cotransporter spends that Na⁺ gradient.','Na⁺ binds first, then glucose. Only when both are bound does the cotransporter flip and carry them across. An empty one switches sides only after waiting a while.','Na⁺ and glucose move in the same direction, so this cotransporter is called a symporter. It doesn’t use ATP itself, but it still uses energy: the Na⁺ gradient the pump built.','Turn the pump off and watch the Na⁺ percentages. As Na⁺ builds up inside, Na⁺ and glucose start binding on the inside face too, so backward trips cancel forward ones and glucose stops piling up.'],
+  legend:['na','glu','k'],
+  init(){S={parts:[],prots:[],floats:[],msg:null,atpUsed:0,moved:0};spawn(S.parts,'na','out',14);spawn(S.parts,'na','in',3);spawn(S.parts,'glu','out',13);spawn(S.parts,'glu','in',13);spawn(S.parts,'k','out',8);spawn(S.parts,'k','in',8);
+    S.sym={kind:'sym',x:330,w:66,s:1,phase:'open',t:0,na:null,gl:null,idle:330,label:'Na⁺–glucose cotransporter'};S.sym2={kind:'sym',x:120,w:66,s:1,phase:'open',t:0,na:null,gl:null,idle:330};S.pump=makePump(640,true);S.pump.label='Na⁺/K⁺ pump';
+    S.chan={kind:'channel',sub:'k',t:'k',x:860,w:54,gap:18,label:'K⁺ channel'};S.prots.push(S.sym2,S.sym,S.pump,S.chan);},
+  update(dt){S.parts.forEach(p=>stepP(p,dt));symUpdate(S.sym,dt);symUpdate(S.sym2,dt);pumpUpdate(S.pump,dt);},
+  draw(dt){const f=()=>0;background(f);drawMembrane(f,S.prots.map(p=>[p.x-p.w/2-3,p.x+p.w/2+3]));S.prots.forEach(drawProt);S.parts.forEach(p=>drawGlyph(ctx,p.t,p.x,p.y));regions();
+    label('Model intestine cell',W-16,24,{align:'right',size:13});if(!S.pump.on)label('PUMP OFF',S.pump.x,yTop-36,{size:12,color:C.pump});drawFloats(dt);drawMsg(dt);},
+  controls(el){const b=btn('Turn pump off',()=>{S.pump.on=!S.pump.on;b.textContent=S.pump.on?'Turn pump off':'Turn pump on';});el.append(b);this._pb=b;},
+  onReset(){if(this._pb)this._pb.textContent='Turn pump off';},
+  counters(){return[{kind:'grad',t:'na',get:()=>count('na')},{kind:'grad',t:'glu',get:()=>count('glu')},{kind:'tally',label:'ATP spent by pump',get:()=>S.atpUsed},{kind:'tally',label:'Net glucose brought in',get:()=>S.moved}];},
+  quiz:{q:'You turn off the Na⁺/K⁺ pump. What happens to glucose uptake over time?',opts:['It speeds up','It slows and stops as the Na⁺ gradient runs down','Nothing changes; the cotransporter has its own ATP','Glucose starts diffusing through the bilayer'],a:1,
+    why:'The cotransporter runs on the Na⁺ gradient. Without the pump rebuilding that gradient, it runs out of energy to move glucose uphill.'}},
+
+{ id:'exo',group:'bulk',short:'Exocytosis',kicker:'Bulk transport · uses ATP',title:'Exocytosis',
+  idea:'Internal vesicles fuse with the plasma membrane and secrete large macromolecules, like the protein insulin, out of the cell.',
+  watch:['A vesicle buds off the Golgi carrying insulin.','Its membrane merges with the plasma membrane, so the cell surface grows a little.','The inside of the vesicle becomes open to the outside of the cell.'],
+  legend:['ins'],
+  init(){S={parts:[],ves:[],pk:[],floats:[],msg:null,atp:0,sent:0};this.send(.35);},
+  send(t0=0){const cx=380+rand()*440,R=40,v={x:170,y:440,R,from:[200,430],to:[cx,yBot+R+2],t:t0,cargo:[]};
+    for(let i=0;i<6;i++){const p=P('ins',0,0);p.ves=v;p.ox=(rand()-.5)*20;p.oy=(rand()-.5)*20;v.cargo.push(p);}S.ves.push(v);S.atp++;S.sent++;float(230,400,'−1 ATP',C.ink);},
+  prof(x){let s=0;for(const k of S.pk)s+=k.depth*gauss(x,k.cx,36);return s;},
+  update(dt){const pf=x=>this.prof(x);
+    for(const v of S.ves){v.t+=dt/170;const f=ease(v.t);v.x=lerp(v.from[0],v.to[0],f);v.y=lerp(v.from[1],v.to[1],f)-Math.sin(f*Math.PI)*40;v.cargo.forEach(p=>inVes(p,v,dt));
+      if(v.t>=1){S.pk.push({cx:v.x,d0:112,depth:112,t:0});v.cargo.forEach(p=>{p.ves=null;p.vy=-1.4;S.parts.push(p);});v.done=true;}}
+    S.ves=S.ves.filter(v=>!v.done);
+    for(const k of S.pk){k.t+=dt/130;k.depth=k.d0*(1-ease(k.t));}S.pk=S.pk.filter(k=>k.t<1);
+    S.parts.forEach(p=>stepOut(p,dt,pf));if(S.parts.length>72)S.parts.splice(0,S.parts.length-72);},
+  draw(dt){const pf=x=>this.prof(x);background(pf);
+    ctx.lineCap='round';ctx.strokeStyle=C.golgi;ctx.lineWidth=11;for(let i=0;i<4;i++){const y=445+i*17;ctx.beginPath();ctx.moveTo(100+i*7,y+12);ctx.quadraticCurveTo(170,y-16,240-i*7,y+12);ctx.stroke();}
+    label('Golgi apparatus',170,H-18,{size:12.5});
+    drawMembrane(pf);
+    S.ves.forEach(v=>{drawVesicle(v.x,v.y,v.R,C.ecf);v.cargo.forEach(p=>drawGlyph(ctx,'ins',p.x,p.y));});
+    S.parts.forEach(p=>drawGlyph(ctx,p.t,p.x,p.y));
+    label('OUTSIDE THE CELL · extracellular fluid',16,24,{align:'left',size:12.5,color:C.muted});label('INSIDE · pancreatic cell',W-16,H-20,{align:'right',size:12.5,color:C.muted});
+    if(S.ves.length){const v=S.ves[0];if(v.t<.8)label('vesicle',v.x+58,v.y,{size:12});}
+    drawFloats(dt);drawMsg(dt);},
+  controls(el){el.append(btn('Send an insulin vesicle',()=>this.send()));},
+  counters(){return[{kind:'tally',label:'Vesicles sent',get:()=>S.sent},{kind:'tally',label:'Insulin outside',get:()=>S.parts.length},{kind:'tally',label:'ATP spent',get:()=>S.atp}];},
+  quiz:{q:'After exocytosis, what happens to the vesicle’s membrane?',opts:['A lysosome digests it','It becomes part of the plasma membrane','It floats away with the insulin','It returns to the Golgi unchanged'],a:1,
+    why:'The vesicle’s phospholipids merge into the plasma membrane. Exocytosis adds membrane to the cell surface.'}},
+
+{ id:'phago',group:'bulk',short:'Phagocytosis',kicker:'Bulk transport · endocytosis',title:'Phagocytosis',
+  idea:'“Cell eating,” a type of endocytosis. A macrophage takes in particulate matter, here a whole bacterium, inside a new vesicle made from its plasma membrane.',
+  watch:['Extensions of the membrane, called pseudopodia, reach out around the bacterium.','The pocket pinches off into a food vacuole.','A lysosome fuses with it. Its hydrolytic enzymes break the bacterium down.'],
+  legend:[],
+  init(){S={parts:[],floats:[],msg:null,atp:0,eaten:0,phase:'wander',t:0,cx:480,A:0,d:72,D:0,ph:null,lyso:{x:870,y:490,show:true},bac:this.newBac(),enz:[],frags:[]};},
+  newBac(){return{x:180+rand()*600,y:90+rand()*100,ang:rand()*Math.PI,vx:(rand()-.5)*1.2,vy:(rand()-.5)*.6,sc:1,wig:0,alpha:1};},
+  prof(x){return -S.A*(gauss(x,S.cx-S.d,24)+gauss(x,S.cx+S.d,24))+S.D*gauss(x,S.cx,50);},
+  status(){return{wander:'Bacterium nearby',approach:'Detecting the bacterium',reach:'Pseudopodia reaching out',wrap:'Wrapping around it',sink:'Food vacuole pinched off',lyso:'Lysosome moving in',digest:'Enzymes digesting',done:'Digested'}[S.phase];},
+  update(dt){const b=S.bac;S.t+=dt;b.wig+=dt*.25;
+    switch(S.phase){
+      case 'wander':b.vx+=(rand()-.5)*.08*dt;b.vy+=(rand()-.5)*.08*dt;b.vx=clamp(b.vx,-1.2,1.2);b.vy=clamp(b.vy,-.7,.7);b.x+=b.vx*dt;b.y+=b.vy*dt;
+        if(b.x<60||b.x>W-60)b.vx*=-1;if(b.y<60||b.y>yTop-70)b.vy*=-1;b.x=clamp(b.x,60,W-60);b.y=clamp(b.y,60,yTop-70);b.ang=Math.atan2(b.vy,b.vx);break;
+      case 'approach':{const f=ease(S.t/80);b.x=lerp(b.f[0],S.cx,f);b.y=lerp(b.f[1],yTop-34,f);b.ang=lerp(b.f[2],0,f);if(S.t>=80){S.phase='reach';S.t=0;}break;}
+      case 'reach':S.A=85*ease(S.t/70);if(S.t>=70){S.phase='wrap';S.t=0;}break;
+      case 'wrap':{const f=ease(S.t/100);S.A=lerp(85,25,f);S.d=lerp(72,44,f);S.D=lerp(0,150,f);b.y=lerp(yTop-34,M+92,f);
+        if(S.t>=100){S.A=0;S.D=0;S.d=72;S.ph={x:S.cx,y:M+HT+58+12,R:58,lyso:false,alpha:1};b.x=S.ph.x;b.y=S.ph.y;S.phase='sink';S.t=0;}break;}
+      case 'sink':S.ph.y=lerp(M+92,420,ease(S.t/70));b.y=S.ph.y;if(S.t>=70){S.phase='lyso';S.t=0;}break;
+      case 'lyso':{const f=ease(S.t/90);S.lyso.x=lerp(870,S.ph.x+70,f);S.lyso.y=lerp(490,S.ph.y+20,f);
+        if(S.t>=90){S.lyso.show=false;S.ph.lyso=true;for(let i=0;i<12;i++)S.enz.push({ox:(rand()-.5)*60,oy:(rand()-.5)*60});S.phase='digest';S.t=0;}break;}
+      case 'digest':b.sc=lerp(1,.15,S.t/170);if(rand()<.25*dt&&S.frags.length<40)S.frags.push({ox:(rand()-.5)*30,oy:(rand()-.5)*14});
+        S.enz.concat(S.frags).forEach(e=>{e.ox+=(rand()-.5)*.8*dt;e.oy+=(rand()-.5)*.8*dt;const d=Math.hypot(e.ox,e.oy),Rin=34;if(d>Rin){e.ox*=Rin/d;e.oy*=Rin/d;}});
+        if(S.t>=170){S.phase='done';S.t=0;S.eaten++;}break;
+      case 'done':S.ph.alpha=1-S.t/80;if(S.t>=80){S.ph=null;S.enz=[];S.frags=[];S.lyso={x:870,y:490,show:true};S.bac=this.newBac();S.phase='wander';S.t=0;}break;
+    }
+    if(this._eb)this._eb.disabled=S.phase!=='wander';},
+  draw(dt){const pf=x=>this.prof(x),b=S.bac;background(pf);drawMembrane(pf);
+    if(S.ph){const ph=S.ph;drawVesicle(ph.x,ph.y,ph.R,ph.lyso?C.lyso:C.ecf,ph.alpha);ctx.save();ctx.globalAlpha=ph.alpha;
+      S.enz.forEach(e=>{dot(ctx,ph.x+e.ox,ph.y+e.oy,2.6,C.pump,false);});S.frags.forEach(e=>dot(ctx,ph.x+e.ox,ph.y+e.oy,2.2,C.bac,false));ctx.restore();}
+    if(S.phase!=='done')this.drawBac(b);
+    if(S.lyso.show){organelle(S.lyso.x,S.lyso.y,24,C.lyso,C.head);for(let i=0;i<6;i++)dot(ctx,S.lyso.x+Math.cos(i)*11,S.lyso.y+Math.sin(i*1.7)*11,2.6,C.pump,false);label('lysosome',S.lyso.x,S.lyso.y+44,{size:12});}
+    if(S.phase==='wander')label('bacterium',b.x,b.y-30,{size:12});
+    if(S.phase==='reach'||S.phase==='wrap')label('pseudopodia',S.cx+S.d+54,M-S.A-6,{size:12});
+    if(S.ph&&!S.ph.lyso&&S.phase!=='done')label('food vacuole',S.ph.x-110,S.ph.y,{size:12});
+    label('OUTSIDE THE CELL',16,24,{align:'left',size:12.5,color:C.muted});label('INSIDE · macrophage (white blood cell)',16,H-20,{align:'left',size:12.5,color:C.muted});
+    drawFloats(dt);drawMsg(dt);},
+  drawBac(b){ctx.save();ctx.globalAlpha=b.alpha;ctx.translate(b.x,b.y);ctx.rotate(b.ang);ctx.scale(b.sc,b.sc);
+    ctx.strokeStyle=C.bac;ctx.lineWidth=2;ctx.beginPath();for(let i=0;i<=24;i++){const x=-30-i*2,y=Math.sin(i*.6+b.wig)*4;i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();
+    ctx.fillStyle=C.bac;rr(-30,-13,60,26,13);ctx.fill();ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=1.2;ctx.stroke();
+    ctx.globalAlpha*=.35;ctx.strokeStyle='#fff';ctx.beginPath();ctx.moveTo(-16,-3);ctx.bezierCurveTo(-6,6,4,-6,16,3);ctx.stroke();ctx.restore();},
+  controls(el){const b=btn('Engulf the bacterium',()=>{if(S.phase!=='wander')return;const bb=S.bac;bb.f=[bb.x,bb.y,bb.ang];S.phase='approach';S.t=0;S.atp++;float(S.cx+90,yBot+50,'−1 ATP',C.ink);});this._eb=b;el.append(b);},
+  counters(){return[{kind:'tally',label:'Now',get:()=>this.status()},{kind:'tally',label:'Bacteria digested',get:()=>S.eaten},{kind:'tally',label:'ATP spent',get:()=>S.atp}];},
+  quiz:{q:'What does the lysosome add after the bacterium is engulfed?',opts:['ATP to power the macrophage','Hydrolytic enzymes that digest the bacterium','New membrane for the next pseudopod','Channels that let the bacterium escape'],a:1,
+    why:'Lysosomes hold hydrolytic enzymes. When a lysosome fuses with the food vacuole, those enzymes break the bacterium into small molecules.'}},
+
+{ id:'pino',group:'bulk',short:'Pinocytosis',kicker:'Bulk transport · endocytosis',title:'Pinocytosis',
+  idea:'“Cell drinking.” The membrane folds in and pinches off small vesicles of outside fluid, along with whatever is dissolved in it.',
+  watch:['Each pocket takes a sip of fluid. It doesn’t pick and choose what comes along.','Compare with phagocytosis: smaller vesicles, and liquid instead of a whole cell.','Every pinch costs the cell energy.'],
+  legend:['h2o','dot','glu','na'],
+  init(){S={parts:[],ves:[],pk:[],floats:[],msg:null,atp:0,made:0,timer:200};spawn(S.parts,'h2o','out',26);spawn(S.parts,'dot','out',18);spawn(S.parts,'glu','out',6);spawn(S.parts,'na','out',6);
+    S.pk.push({cx:420,depth:0,t:.45});},
+  prof(x){let s=0;for(const k of S.pk)s+=k.depth*gauss(x,k.cx,30);return s;},
+  update(dt){const pf=x=>this.prof(x);S.timer-=dt;
+    if(S.timer<=0&&S.pk.length<2){let cx=0;for(let i=0;i<12;i++){cx=110+rand()*(W-220);if(S.pk.every(k=>Math.abs(k.cx-cx)>200))break;}S.pk.push({cx,depth:0,t:0});S.timer=100+rand()*80;}
+    for(const k of S.pk){k.t+=dt/110;k.depth=128*ease(k.t);
+      if(k.t>=1){k.done=true;const v={x:k.cx,y:M+HT+40+8,R:40,age:0,alpha:1,cargo:[],wob:rand()*6};
+        for(const p of S.parts){if(!p.ves&&!p.held&&Math.abs(p.x-k.cx)<48&&p.y>yTop+2){p.ves=v;p.ox=clamp(p.x-v.x,-12,12);p.oy=(rand()-.5)*16;v.cargo.push(p);}}
+        S.ves.push(v);S.made++;S.atp++;float(k.cx+70,M+70,'−1 ATP',C.ink);}}
+    S.pk=S.pk.filter(k=>!k.done);
+    for(const v of S.ves){v.age+=dt;if(v.y<H-90)v.y+=.5*dt;v.x+=Math.sin(v.age*.03+v.wob)*.25*dt;v.cargo.forEach(p=>inVes(p,v,dt));if(v.age>260)v.alpha-=dt/70;
+      if(v.alpha<=0){v.gone=true;const n=v.cargo.length;S.parts=S.parts.filter(p=>p.ves!==v);for(const p of v.cargo){const q=P(p.t,30+rand()*(W-60),30+rand()*40);S.parts.push(q);}}}
+    S.ves=S.ves.filter(v=>!v.gone);
+    S.parts.forEach(p=>stepOut(p,dt,pf));},
+  draw(dt){const pf=x=>this.prof(x);background(pf);drawMembrane(pf);
+    S.ves.forEach(v=>{drawVesicle(v.x,v.y,v.R,C.ecf,clamp(v.alpha,0,1));ctx.save();ctx.globalAlpha=clamp(v.alpha,0,1);v.cargo.forEach(p=>drawGlyph(ctx,p.t,p.x,p.y));ctx.restore();});
+    S.parts.forEach(p=>{if(!p.ves)drawGlyph(ctx,p.t,p.x,p.y);});
+    regions();if(S.ves[0]&&S.ves[0].age<200)label('vesicle of outside fluid',S.ves[0].x+120,S.ves[0].y,{size:12});
+    drawFloats(dt);drawMsg(dt);},
+  controls(){},
+  counters(){return[{kind:'tally',label:'Vesicles formed',get:()=>S.made},{kind:'tally',label:'ATP spent',get:()=>S.atp}];},
+  quiz:{q:'How is pinocytosis different from phagocytosis?',opts:['Pinocytosis needs no energy','Pinocytosis takes in fluid and whatever is dissolved in it, without choosing','Pinocytosis only takes in bacteria','Pinocytosis moves molecules through channel proteins'],a:1,
+    why:'Pinocytosis is nonspecific. Small vesicles carry in a sample of extracellular fluid and its solutes. Like all bulk transport, it costs energy.'}},
+
+{ id:'rme',group:'bulk',short:'Receptor-mediated',kicker:'Bulk transport · endocytosis',title:'Receptor-mediated endocytosis',
+  idea:'Receptor proteins on the surface bind one specific molecule. Once they are loaded, that patch of membrane folds in and pinches off a vesicle full of the cargo.',
+  watch:['Only LDL sticks to the receptors. Water and other solutes drift past.','The vesicle forms only after the receptors are filled. Compare that with pinocytosis, which grabs whatever is nearby.','A little outside fluid comes along too, but the cargo is concentrated.','Every vesicle costs the cell energy.','Inside the cell, the vesicle fuses with a lysosome. Its enzymes break the LDL particle apart and release the cholesterol for the cell to use.','Why it matters: in familial hypercholesterolemia, an inherited disease, the LDL receptors are faulty. Cells can’t take LDL in, so cholesterol builds up in the blood and raises the risk of heart disease.'],
+  legend:['ldl','h2o','dot'],
+  init(){S={parts:[],ves:[],floats:[],msg:null,atp:0,made:0,ldlIn:0,pit:null};spawn(S.parts,'ldl','out',16);spawn(S.parts,'h2o','out',22);spawn(S.parts,'dot','out',16);this.newPit(480);},
+  newPit(cx){if(cx==null){cx=480;for(let i=0;i<12;i++){cx=140+rand()*(W-280);if(S.ves.every(v=>Math.abs(v.x-cx)>140||v.y>M+170))break;}}
+    S.pit={cx,depth:0,t:0,phase:'bind',recs:[-42,-14,14,42].map(o=>({o,lig:null}))};},
+  prof(x){return S.pit?S.pit.depth*gauss(x,S.pit.cx,44)+5*gauss(x,S.pit.cx,30):0;},
+  pose(x){const pf=this.prof.bind(this);const y=M+pf(x),sl=(pf(x+1)-pf(x-1))/2,n0=Math.hypot(1,sl),tx=1/n0,ty=sl/n0;return{x,y,tx,ty,nx:ty,ny:-tx};},
+  update(dt){const pf=x=>this.prof(x),pt=S.pit;
+    if(pt){
+      for(const r of pt.recs){const q=this.pose(pt.cx+r.o),tip=[q.x+q.nx*(HT+18),q.y+q.ny*(HT+18)];
+        if(r.lig)follow(r.lig,[tip[0]+q.nx*9,tip[1]+q.ny*9],dt,26);
+        else if(pt.phase==='bind'){const c=S.parts.find(p=>p.t==='ldl'&&!p.held&&!p.ves&&Math.hypot(p.x-tip[0],p.y-tip[1])<46);if(c){grab(c,r);r.lig=c;}}}
+      if(pt.phase==='bind'&&pt.recs.every(r=>r.lig&&r.lig.bt>=1)){pt.phase='fold';pt.t=0;}
+      if(pt.phase==='fold'){pt.t+=dt/110;pt.depth=150*ease(pt.t);
+        if(pt.t>=1){const v={x:pt.cx,y:M+HT+56+10,R:56,age:0,alpha:1,cargo:[],recs:[],wob:rand()*6};
+          pt.recs.forEach((r,i)=>{const a=Math.PI/4+i*Math.PI/2;v.recs.push(a);const p=r.lig;p.held=null;p.ves=v;p.ox=Math.cos(a)*14;p.oy=Math.sin(a)*14;p.fixed=true;v.cargo.push(p);});
+          for(const p of S.parts){if(!p.ves&&!p.held&&Math.abs(p.x-pt.cx)<60&&p.y>yTop+2){p.ves=v;p.ox=(rand()-.5)*20;p.oy=(rand()-.5)*20;v.cargo.push(p);}}
+          S.ves.push(v);S.made++;S.atp++;float(pt.cx+90,M+80,'−1 ATP',C.ink);S.pit=null;S.pitT=90;}}
+    }else{S.pitT-=dt;if(S.pitT<=0)this.newPit();}
+    for(const v of S.ves){v.age+=dt;if(v.y<H-110)v.y+=.5*dt;v.x+=Math.sin(v.age*.03+v.wob)*.25*dt;
+      v.cargo.forEach(p=>{if(p.fixed){p.x=v.x+p.ox;p.y=v.y+p.oy;}else inVes(p,v,dt);});
+      if(v.age>280)v.alpha-=dt/70;
+      if(v.alpha<=0){v.gone=true;S.parts=S.parts.filter(p=>p.ves!==v);for(const p of v.cargo){if(p.t==='ldl')S.ldlIn++;S.parts.push(P(p.t,30+rand()*(W-60),30+rand()*40));}}}
+    S.ves=S.ves.filter(v=>!v.gone);
+    S.parts.forEach(p=>{if(!p.held)stepOut(p,dt,pf);});},
+  drawRec(bx,by,nx,ny,tx,ty,len){ctx.strokeStyle=C.rec;ctx.lineCap='round';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(bx-nx*HT,by-ny*HT);ctx.lineTo(bx+nx*(len-8),by+ny*(len-8));ctx.stroke();
+    ctx.lineWidth=4;ctx.beginPath();const ex=bx+nx*(len-8),ey=by+ny*(len-8);ctx.moveTo(ex,ey);ctx.lineTo(ex+nx*10+tx*8,ey+ny*10+ty*8);ctx.moveTo(ex,ey);ctx.lineTo(ex+nx*10-tx*8,ey+ny*10-ty*8);ctx.stroke();},
+  draw(dt){const pf=x=>this.prof(x);background(pf);drawMembrane(pf);
+    if(S.pit)for(const r of S.pit.recs){const q=this.pose(S.pit.cx+r.o);this.drawRec(q.x,q.y,q.nx,q.ny,q.tx,q.ty,HT+18);}
+    S.ves.forEach(v=>{const a0=clamp(v.alpha,0,1);drawVesicle(v.x,v.y,v.R,C.ecf,a0);ctx.save();ctx.globalAlpha=a0;
+      v.recs.forEach(a=>{const c=Math.cos(a),sn=Math.sin(a);this.drawRec(v.x+c*v.R,v.y+sn*v.R,-c,-sn,-sn,c,HT+12);});
+      v.cargo.forEach(p=>drawGlyph(ctx,p.t,p.x,p.y));ctx.restore();});
+    S.parts.forEach(p=>{if(!p.ves)drawGlyph(ctx,p.t,p.x,p.y);});
+    regions();
+    if(S.pit){const n=S.pit.recs.filter(r=>r.lig).length;label(S.pit.phase==='bind'?`receptors filled: ${n} of 4`:'membrane folding in',S.pit.cx+(S.pit.cx>W/2?-170:170),yBot+40,{size:12.5});}
+    if(S.ves[0]&&S.ves[0].age<200)label('vesicle of LDL',S.ves[0].x+120,S.ves[0].y,{size:12});
+    drawFloats(dt);drawMsg(dt);},
+  controls(el){el.append(btn('+5 LDL outside',()=>spawn(S.parts,'ldl','out',5)));},
+  counters(){return[{kind:'tally',label:'LDL outside',get:()=>S.parts.filter(p=>p.t==='ldl'&&p.y<M&&!p.ves).length},{kind:'tally',label:'LDL delivered inside',get:()=>S.ldlIn},{kind:'tally',label:'Vesicles formed',get:()=>S.made},{kind:'tally',label:'ATP spent',get:()=>S.atp}];},
+  quiz:{q:'What makes receptor-mediated endocytosis more selective than pinocytosis?',opts:['Receptor proteins bind specific molecules before the vesicle forms','It doesn’t need energy','The cargo passes through channel proteins','Only water can enter the vesicle'],a:0,
+    why:'Receptors on the membrane bind only their matching molecule. The vesicle forms around the loaded receptors, so the cell takes in a lot of that one cargo.'}},
+
+{ id:'review',group:'review',short:'Sort it out'}
+];
+
+/* ================= UI ================= */
+let idx=0,running=false,started=false,stage=null;
+const done=new Array(STAGES.length).fill(false);
+function btn(text,fn){const b=document.createElement('button');b.className='btn';b.type='button';b.textContent=text;b.onclick=fn;return b;}
+const GROUPS=[['passive','Passive transport',[0,1]],['active','Active transport',[2,3]],['bulk','Bulk transport',[4,5,6,7]],['review','Wrap-up',[8]]];
+function renderSteps(){const nav=$('#steps');nav.innerHTML='';
+  for(const [g,name,ids] of GROUPS){const grp=document.createElement('div');grp.className='grp';grp.dataset.g=g;grp.innerHTML=`<span class="grp-name">${name}</span>`;const row=document.createElement('div');row.className='grp-row';
+    for(const i of ids){const b=document.createElement('button');b.className='step'+(done[i]?' done':'');b.type='button';if(i===idx)b.setAttribute('aria-current','step');
+      b.innerHTML=`<span class="n">${done[i]?'✓':i+1}</span><span class="t">${STAGES[i].short}</span>`;b.onclick=()=>go(i);row.append(b);}
+    grp.append(row);nav.append(grp);}}
+let cRefs=[];
+function buildCounters(){const el=$('#counters');el.innerHTML='';cRefs=[];const list=stage.counters();
+  if(list.some(c=>c.kind==='grad')){const h=document.createElement('div');h.className='c-head';h.innerHTML='<span></span><span>Out</span><span></span><span>In</span>';el.append(h);}
+  for(const c of list){if(c.kind==='grad'){const r=document.createElement('div');r.className='c-row';const nm=document.createElement('span');nm.className='c-name';nm.append(glyphCanvas(c.t,22),NAMES[c.t]);
+      const o=document.createElement('span');o.className='c-num';const bar=document.createElement('div');bar.className='bar';const fill=document.createElement('i');bar.append(fill);const i=document.createElement('span');i.className='c-num in';
+      r.append(nm,o,bar,i);el.append(r);cRefs.push({c,o,i,fill});}
+    else{const r=document.createElement('div');r.className='t-row';const b=document.createElement('b');r.innerHTML=`<span>${c.label}</span>`;r.append(b);el.append(r);cRefs.push({c,b});}}
+  updateCounters();}
+function updateCounters(){for(const r of cRefs){const v=r.c.get();if(r.c.kind==='grad'){const tot=v[0]+v[1],pc=n=>tot?Math.round(n/tot*100):0;r.o.innerHTML=`${v[0]} <small>/ ${pc(v[0])}%</small>`;r.i.innerHTML=`${v[1]} <small>/ ${tot?100-pc(v[0]):0}%</small>`;r.fill.style.width=(tot?v[0]/tot*100:50)+'%';}else r.b.textContent=v;}}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function renderQuiz(){const q=stage.quiz,el=$('#quiz');el.innerHTML=`<h3>Check yourself</h3><p class="q"></p><div class="opts"></div><p class="fb" aria-live="polite"></p>`;
+  el.querySelector('.q').textContent=q.q;const opts=el.querySelector('.opts'),fb=el.querySelector('.fb');
+  shuffle(q.opts.map((_,i)=>i)).forEach(i=>{const b=document.createElement('button');b.className='opt';b.type='button';b.textContent=q.opts[i];
+    b.onclick=()=>{if(i===q.a){b.classList.add('right');fb.textContent='Yes. '+q.why;done[idx]=true;renderSteps();opts.querySelectorAll('.opt').forEach(x=>x.disabled=true);}
+      else{b.classList.add('wrong');b.disabled=true;fb.textContent='Not quite. Watch the model again, then try another answer.';}};opts.append(b);});}
+function renderLegend(){const el=$('#legend');el.innerHTML='';
+  [...stage.legend,'lipid'].forEach(t=>{const b=document.createElement('button');b.type='button';b.className='key-item';b.dataset.tip=(MOL[t]&&MOL[t].tip)||'Click to view molecule';
+    b.append(glyphCanvas(t),t==='lipid'?'Phospholipid':NAMES[t]);b.onclick=()=>openMol(t,b);el.append(b);});}
+function go(i){
+  idx=i;stage=STAGES[i];$('#app').dataset.group=stage.group==='review'?'passive':stage.group;renderSteps();
+  const rev=stage.id==='review';$('#lab').hidden=rev;$('#review').hidden=!rev;
+  if(rev){buildReview();window.scrollTo({top:0,behavior:'smooth'});return;}
+  $('#kicker').textContent=stage.kicker;$('#title').textContent=stage.title;$('#idea').textContent=stage.idea;
+  const w=$('#watch');w.innerHTML='';stage.watch.forEach(t=>{const li=document.createElement('li');li.textContent=t;w.append(li);});
+  stage.init();const ce=$('#controls');ce.innerHTML='';stage.controls(ce);
+  renderLegend();buildCounters();renderQuiz();
+  $('#prevBtn').disabled=i===0;$('#nextBtn').textContent=`Next: ${STAGES[i+1].short} →`;
+}
+$('#prevBtn').onclick=()=>go(Math.max(0,idx-1));
+$('#nextBtn').onclick=()=>{go(Math.min(STAGES.length-1,idx+1));$('.canvas-box').scrollIntoView({block:'nearest',behavior:'smooth'});};
+function setRun(v){running=v;$('#playBtn').textContent=v?'❚❚ Pause':'▶ Play';}
+$('#playBtn').onclick=()=>{if(!started){begin();return;}setRun(!running);};
+$('#resetBtn').onclick=()=>{stage.init();if(stage.onReset)stage.onReset();buildCounters();};
+let speed=1;
+$('#speedBtn').onclick=()=>{speed=speed===1?2:1;$('#speedBtn').setAttribute('aria-pressed',speed===2);};
+function begin(){started=true;$('#intro').hidden=true;setRun(true);}
+$('#startBtn').onclick=begin;
+setRun(false);
+
+/* ---------- review ---------- */
+const CARDS=[
+ ['simple','O₂ moves from the blood into a muscle cell that is low on O₂.','O₂ is small and nonpolar, so it crosses the bilayer directly, high → low.'],
+ ['simple','CO₂ leaves a hard-working muscle cell.','CO₂ is small and nonpolar. It diffuses straight through the bilayer.'],
+ ['facil','K⁺ flows out of a neuron through an open protein tunnel.','A charged ion needs a channel, but it is moving high → low with no ATP.'],
+ ['facil','Water floods into a kidney cell through aquaporins.','Aquaporins are channels for water. Osmosis through them is passive.'],
+ ['facil','Glucose enters a muscle cell from the blood, high → low, through GLUT4.','A carrier protein is needed, but the movement is downhill, so no ATP.'],
+ ['active','A neuron moves 3 Na⁺ out and 2 K⁺ in, even though Na⁺ is already higher outside.','Moving ions against their gradients takes ATP: that is the Na⁺/K⁺ pump.'],
+ ['active','An intestine cell brings in glucose against its gradient by letting Na⁺ flow in with it.','Glucose moves uphill. The energy comes from the Na⁺ gradient the pump built with ATP.'],
+ ['bulk','A pancreatic cell releases insulin, a large protein.','Insulin leaves in vesicles that fuse with the membrane: exocytosis.'],
+ ['bulk','A white blood cell engulfs a bacterium.','Wrapping the membrane around a whole cell is phagocytosis, a type of endocytosis.'],
+ ['bulk','A cell takes in tiny droplets of the fluid around it.','Gulping fluid in small vesicles is pinocytosis.'],
+ ['bulk','A liver cell takes in LDL particles that first bind to receptors on its surface.','Receptors pick out the cargo, then the membrane folds in: receptor-mediated endocytosis.']];
+const BINS=[['simple','Simple diffusion','No protein · no ATP'],['facil','Facilitated diffusion','Protein · no ATP'],['active','Active transport','Protein · energy · uphill'],['bulk','Bulk transport','Vesicles · energy']];
+let sel=null,firstTry=0,attempted=new Set(),placedN=0;
+function celebrate(n){const N=CARDS.length,box=$('#celebrate');box.hidden=false;
+  if(n===N){$('#celeTitle').textContent='Perfect sort!';$('#celeText').textContent=`All ${N} right on the first try. You know your membrane transport.`;confetti(220);}
+  else if(n===N-1){$('#celeTitle').textContent='So close!';$('#celeText').textContent=`${n} of ${N} right on the first try. One slip, and you fixed it.`;confetti(140);}
+  else{$('#celeTitle').textContent='All sorted';$('#celeText').textContent=`${n} of ${N} right on the first try. Press “Start over” to beat your score.`;}
+  box.scrollIntoView({block:'nearest',behavior:'smooth'});}
+function confetti(n){if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const c=document.createElement('canvas');c.id='confetti';c.setAttribute('aria-hidden','true');document.body.append(c);
+  const d=window.devicePixelRatio||1,w=innerWidth,h=innerHeight;c.width=w*d;c.height=h*d;const g=c.getContext('2d');g.scale(d,d);
+  const cols=[C.o2,C.na,C.k,C.glu,C.water,C.atp,C.ins];
+  const ps=Array.from({length:n},()=>({x:w/2+(rand()-.5)*w*.3,y:h*.35,vx:(rand()-.5)*14,vy:-6-rand()*10,r:rand()*6.28,vr:(rand()-.5)*.3,s:5+rand()*6,c:cols[Math.floor(rand()*cols.length)]}));
+  let t=0;(function f(){t++;g.clearRect(0,0,w,h);for(const p of ps){p.vy+=.28;p.vx*=.99;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;g.save();g.translate(p.x,p.y);g.rotate(p.r);g.fillStyle=p.c;g.globalAlpha=Math.max(0,1-t/170);g.fillRect(-p.s/2,-p.s/4,p.s,p.s/2);g.restore();}
+    if(t<170)requestAnimationFrame(f);else c.remove();})();}
+function buildReview(){$('#celebrate').hidden=true;sel=null;firstTry=0;attempted=new Set();placedN=0;const cards=$('#cards'),bins=$('#bins');cards.innerHTML='';bins.innerHTML='';$('#sortFb').textContent='';
+  shuffle(CARDS.map((c,i)=>i)).forEach(i=>{const b=document.createElement('button');b.className='card';b.type='button';b.textContent=CARDS[i][1];b.dataset.i=i;b.setAttribute('aria-pressed','false');
+    b.onclick=()=>{cards.querySelectorAll('.card').forEach(x=>x.setAttribute('aria-pressed',x===b));sel=b;$('#sortFb').textContent='Now tap the kind of transport.';};cards.append(b);});
+  BINS.forEach(([k,n,sub])=>{const b=document.createElement('button');b.className='bin';b.type='button';b.dataset.k=k==='facil'?'simple':k;b.innerHTML=`<span class="bin-name">${n}</span><span class="bin-sub">${sub}</span>`;b.dataset.key=k;
+    b.onclick=()=>{if(!sel){$('#sortFb').textContent='Tap a scenario first.';return;}const i=+sel.dataset.i,c=CARDS[i];
+      if(c[0]===k){if(!attempted.has(i))firstTry++;const p=document.createElement('div');p.className='placed';p.textContent=c[1];b.append(p);sel.remove();sel=null;placedN++;$('#sortFb').textContent='Correct. '+c[2];
+        if(placedN===CARDS.length){$('#sortFb').textContent=`All sorted. ${firstTry} of ${CARDS.length} right on the first try.`;done[8]=true;renderSteps();celebrate(firstTry);}}
+      else{attempted.add(i);sel.classList.remove('shake');void sel.offsetWidth;sel.classList.add('shake');$('#sortFb').textContent='Not that one. Ask: does it need a protein? Does it go uphill? Does it use vesicles?';}
+      $('#score').textContent=`· ${placedN}/${CARDS.length} sorted`;};bins.append(b);});
+  $('#score').textContent=`· 0/${CARDS.length} sorted`;}
+$('#sortReset').onclick=buildReview;
+$('#revBack').onclick=()=>go(7);
+$('#revStart').onclick=()=>{go(0);window.scrollTo({top:0,behavior:'smooth'});};
+
+/* ---------- molecule viewer ---------- */
+const B='stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round"';
+const lp=(x,y)=>`<circle cx="${x}" cy="${y}" r="2.7" fill="var(--ink)"/>`;
+const tx=(x,y,t,cls='',fs=28,anchor='middle')=>`<text x="${x}" y="${y}" font-size="${fs}" text-anchor="${anchor}" class="${cls}">${t}</text>`;
+const cap=(x,y,t)=>`<text x="${x}" y="${y}" font-size="13" text-anchor="middle" class="cap">${t}</text>`;
+function ionSVG(sym,col,r){let w='';const cx=160,cy=108;
+  for(let k=0;k<6;k++){const a=k*Math.PI/3+Math.PI/6,d=r+26,ox=cx+Math.cos(a)*d,oy=cy+Math.sin(a)*d;
+    for(const s of [-.62,.62]){const hx=ox+Math.cos(a+s)*14,hy=oy+Math.sin(a+s)*14;w+=`<circle cx="${hx.toFixed(1)}" cy="${hy.toFixed(1)}" r="5.5" fill="#fff" stroke="var(--muted)" stroke-width="1.2"/>`;}
+    w+=`<circle cx="${ox.toFixed(1)}" cy="${oy.toFixed(1)}" r="10" fill="var(--o2)"/>`;}
+  return `<svg viewBox="0 0 320 236">${w}<circle cx="${cx}" cy="${cy}" r="${r}" fill="${col}"/><text x="${cx}" y="${cy+8}" font-size="22" text-anchor="middle" fill="#fff" style="fill:#fff">${sym}</text>
+  ${cap(160,226,'Water’s δ− oxygen (red) faces the + ion')}</svg>`;}
+function insulinSVG(){let s='';const a=i=>40+i*14,b=i=>30+i*10;
+  s+=`<path d="M${a(5)} 63 C ${a(5)} 30, ${a(10)} 30, ${a(10)} 63" fill="none" ${B}/>`+tx((a(5)+a(10))/2,34,'S–S','',12);
+  s+=`<line x1="${a(6)}" y1="76" x2="${b(6)}" y2="134" ${B}/>`+tx((a(6)+b(6))/2-16,108,'S–S','',12);
+  s+=`<line x1="${a(19)}" y1="76" x2="${b(18)}" y2="134" ${B}/>`+tx((a(19)+b(18))/2+18,108,'S–S','',12);
+  for(let i=0;i<21;i++)s+=`<circle cx="${a(i)}" cy="70" r="6.5" fill="var(--ins)" stroke="rgba(0,0,0,.25)"/>`;
+  for(let i=0;i<30;i++)s+=`<circle cx="${b(i)}" cy="140" r="5" fill="var(--ins)" opacity=".7" stroke="rgba(0,0,0,.25)"/>`;
+  return `<svg viewBox="0 0 360 200">${tx(40,18,'A chain · 21 amino acids','',13,'start')}${tx(30,170,'B chain · 30 amino acids','',13,'start')}${cap(180,194,'Each bead is one amino acid. S–S = disulfide bond.')}${s}</svg>`;}
+function ldlSVG(){const cx=140,cy=130,R=92;let s=`<circle cx="${cx}" cy="${cy}" r="${R-20}" fill="var(--ldl)" opacity=".28"/>`;
+  for(let i=0;i<16;i++){const a=i*2.4,d=(i%5)*12+8;s+=`<ellipse cx="${(cx+Math.cos(a)*d).toFixed(1)}" cy="${(cy+Math.sin(a)*d).toFixed(1)}" rx="7" ry="4" transform="rotate(${(i*37)%180} ${(cx+Math.cos(a)*d).toFixed(1)} ${(cy+Math.sin(a)*d).toFixed(1)})" fill="var(--atp)" stroke="rgba(0,0,0,.25)"/>`;}
+  const n=44;for(let i=0;i<n;i++){const a=i/n*Math.PI*2,c=Math.cos(a),si=Math.sin(a),tx_=-si,ty_=c;
+    for(const o of[-1.6,1.6])s+=`<line x1="${(cx+c*(R-5)+tx_*o).toFixed(1)}" y1="${(cy+si*(R-5)+ty_*o).toFixed(1)}" x2="${(cx+c*(R-19)+tx_*o).toFixed(1)}" y2="${(cy+si*(R-19)+ty_*o).toFixed(1)}" stroke="var(--tail)" stroke-width="1.5"/>`;
+    s+=`<circle cx="${(cx+c*R).toFixed(1)}" cy="${(cy+si*R).toFixed(1)}" r="5" fill="var(--head)" stroke="var(--head-edge)"/>`;}
+  const arc=(a0,a1,r)=>`M${(cx+Math.cos(a0)*r).toFixed(1)} ${(cy+Math.sin(a0)*r).toFixed(1)} A ${r} ${r} 0 0 1 ${(cx+Math.cos(a1)*r).toFixed(1)} ${(cy+Math.sin(a1)*r).toFixed(1)}`;
+  s+=`<path d="${arc(200*Math.PI/180,330*Math.PI/180,R+5)}" fill="none" stroke="var(--carrier)" stroke-width="11" stroke-linecap="round"/>`;
+  s+=`<line x1="150" y1="32" x2="244" y2="26" stroke="var(--muted)"/>${tx(248,30,'protein the LDL receptor binds','',13,'start')}`;
+  s+=`<line x1="238" y1="128" x2="248" y2="128" stroke="var(--muted)"/>${tx(252,124,'phospholipids: one layer,','',13,'start')}${tx(252,141,'heads out, tails in','',13,'start')}`;
+  s+=`<line x1="160" y1="160" x2="246" y2="214" stroke="var(--muted)"/>${tx(250,218,'cholesterol packed','',13,'start')}${tx(250,235,'in the core','',13,'start')}`;
+  /* zoom: cholesterol skeletal structure (inset below the particle) */
+  const k=15,ox=56,oy=342,P=(x,y)=>`${(ox+x*k).toFixed(1)},${(oy+y*k).toFixed(1)}`;
+  const hex=(cx,cy)=>[[0,-1],[.866,-.5],[.866,.5],[0,1],[-.866,.5],[-.866,-.5],[0,-1]].map(([x,y])=>[cx+x,cy+y]);
+  const poly=pts=>`<polyline points="${pts.map(([x,y])=>P(x,y)).join(' ')}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  let z=`<rect x="8" y="252" width="226" height="128" rx="10" fill="var(--paper)" stroke="var(--line)"/>`+tx(121,272,'one cholesterol, zoomed in','',13);
+  z+=poly(hex(0,0))+poly(hex(1.732,0))+poly(hex(2.598,-1.5));
+  z+=poly([[3.464,-2],[4.415,-2.309],[5.003,-1.5],[4.415,-.691],[3.464,-1]]);
+  z+=poly([[1.08,.38],[1.70,.74]]);
+  z+=poly([[.866,-.5],[.866,-1.35]])+poly([[3.464,-2],[3.464,-2.85]]);
+  z+=poly([[4.415,-2.309],[5.2,-2.8],[6.07,-2.3],[6.94,-2.8],[7.8,-2.3],[8.67,-2.8],[9.53,-2.3]])+poly([[5.2,-2.8],[5.2,-3.65]])+poly([[8.67,-2.8],[8.67,-3.65]]);
+  z+=poly([[-.866,.5],[-1.55,.9]])+`<text x="${(ox-1.62*k).toFixed(1)}" y="${(oy+1.3*k).toFixed(1)}" font-size="13" text-anchor="end" class="a-o">HO</text>`;
+  z+=tx(121,372,'4 fused carbon rings + one –OH','lbl',11);
+  s+=`<circle cx="148" cy="130" r="14" fill="none" stroke="var(--ink)" stroke-width="2.2"/><line x1="140" y1="142" x2="60" y2="252" stroke="var(--muted)" stroke-dasharray="4 3"/><line x1="156" y1="142" x2="200" y2="252" stroke="var(--muted)" stroke-dasharray="4 3"/>`;
+  return `<svg viewBox="0 0 440 386">${s}${z}</svg>`;}
+function lipidSVG(){
+  const head=`<rect x="186" y="10" width="288" height="262" rx="10" fill="var(--head)" opacity=".14"/><rect x="306" y="276" width="168" height="150" rx="10" fill="var(--tail)" opacity=".2"/>`;
+  const cartoon=`<circle cx="80" cy="116" r="26" fill="var(--head)" stroke="var(--head-edge)" stroke-width="1.5"/>
+   <path d="M70 142 Q64 170 70 196 Q76 222 70 248 Q64 274 70 300" fill="none" stroke="var(--tail)" stroke-width="4" stroke-linecap="round"/>
+   <path d="M90 142 Q96 170 90 196 L108 226 Q114 252 108 278 Q102 296 106 304" fill="none" stroke="var(--tail)" stroke-width="4" stroke-linecap="round"/>
+   ${tx(80,334,'head: hydrophilic','',13)}${tx(80,350,'(polar)','',13)}${tx(80,374,'tails: hydrophobic','',13)}${tx(80,390,'(nonpolar)','',13)}${tx(116,224,'kink','',12,'start')}`;
+  let f='';const t=(x,y,s,c='',fs=17,a='middle')=>tx(x,y,s,c,fs,a);const L=(x1,y1,x2,y2,w=2.2)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--ink)" stroke-width="${w}" stroke-linecap="round"/>`;
+  f+=t(300,36,'(CH₃)₃N⁺','a-n')+L(300,42,300,56)+t(300,72,'CH₂')+L(300,78,300,92)+t(300,108,'CH₂')+L(300,114,300,128)+t(300,144,'O','a-o')+L(300,150,300,164);
+  f+=t(300,184,'P','a-p')+L(288,174,266,174)+L(288,182,266,182)+t(256,184,'O','a-o')+L(312,178,334,178)+t(350,184,'O⁻','a-o')+L(300,190,300,204)+t(300,222,'O','a-o')+L(300,228,300,240);
+  f+=t(300,258,'CH₂')+L(318,252,344,252)+t(360,258,'CH')+L(376,252,402,252)+t(422,258,'CH₂');
+  f+=L(360,264,360,278)+t(360,296,'O','a-o')+L(360,302,360,316)+t(360,334,'C')+L(350,323,332,323)+L(350,331,332,331)+t(322,334,'O','a-o');
+  f+=L(422,264,422,278)+t(422,296,'O','a-o')+L(422,302,422,316)+t(422,334,'C')+L(432,323,450,323)+L(432,331,450,331)+t(462,334,'O','a-o');
+  f+=`<polyline points="360,340 370,354 360,368 370,382 360,396 370,410 360,422" fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/>`;
+  f+=`<polyline points="422,340 432,354 422,368" fill="none" stroke="var(--ink)" stroke-width="2.2"/>`+L(422,368,406,380)+L(426,374,410,386,1.6)+`<polyline points="406,380 402,396 388,406 384,422" fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/>`;
+  f+=t(234,90,'choline','lbl',13,'end')+t(234,160,'phosphate','lbl',13,'end')+t(280,258,'glycerol','lbl',13,'end')+t(350,380,'fatty','lbl',13,'end')+t(350,396,'acids','lbl',13,'end')+t(434,390,'C=C','lbl',11,'start');
+  f+=t(196,200,'HYDROPHILIC','band',11,'start')+t(196,214,'HEAD','band',11,'start')+t(298,300,'HYDROPHOBIC','band',11,'end')+t(298,314,'TAILS','band',11,'end');
+  return `<svg viewBox="0 0 480 432">${head}${cartoon}${f}</svg>`;}
+const MOL={
+ o2:{title:'Oxygen (O₂)',svg:`<svg viewBox="0 0 300 130">${'<line x1="126" y1="58" x2="174" y2="58" '+B+'/><line x1="126" y1="70" x2="174" y2="70" '+B+'/>'}${tx(108,75,'O','a-o')}${tx(192,75,'O','a-o')}${lp(102,38)+lp(114,38)+lp(102,92)+lp(114,92)+lp(186,38)+lp(198,38)+lp(186,92)+lp(198,92)}${cap(150,122,'Double bond · 2 lone pairs on each O')}</svg>`,
+  facts:['Two identical atoms share their electrons equally, so O₂ is nonpolar.','Small and nonpolar, it slips straight through the nonpolar core of the bilayer.']},
+ co2:{title:'Carbon dioxide (CO₂)',svg:`<svg viewBox="0 0 340 130"><line x1="88" y1="58" x2="152" y2="58" ${B}/><line x1="88" y1="70" x2="152" y2="70" ${B}/><line x1="188" y1="58" x2="252" y2="58" ${B}/><line x1="188" y1="70" x2="252" y2="70" ${B}/>${tx(70,75,'O','a-o')}${tx(170,75,'C')}${tx(270,75,'O','a-o')}${lp(64,38)+lp(76,38)+lp(64,92)+lp(76,92)+lp(264,38)+lp(276,38)+lp(264,92)+lp(276,92)}${cap(170,122,'Two double bonds in a straight line')}</svg>`,
+  facts:['Each C=O bond is polar, but the molecule is straight, so the two pulls cancel. Overall, CO₂ is nonpolar.','Small and nonpolar, it diffuses straight through the bilayer.']},
+ h2o:{title:'Water (H₂O)',svg:`<svg viewBox="0 0 300 196"><line x1="138" y1="84" x2="102" y2="126" ${B}/><line x1="162" y1="84" x2="198" y2="126" ${B}/>${tx(150,80,'O','a-o')}${tx(90,150,'H')}${tx(210,150,'H')}${lp(122,58)+lp(130,48)+lp(170,48)+lp(178,58)}${tx(196,78,'δ−','a-o',16)}${tx(90,176,'δ+','',16)}${tx(210,176,'δ+','',16)}${cap(150,192,'Bent shape · 2 lone pairs on O')}</svg>`,
+  facts:['Oxygen pulls shared electrons harder than hydrogen does, so O is slightly negative (δ−) and each H slightly positive (δ+). Water is polar.','The bent shape keeps those charges from canceling.','A little water squeezes through the bilayer, but aquaporins let it through much faster.']},
+ na:{title:'Sodium ion (Na⁺)',svg:ionSVG('Na⁺','var(--na)',24),
+  facts:['A sodium atom gives up its one outer electron, leaving a +1 charge. Its Lewis structure is just [Na]⁺.','Water molecules cling to the ion, forming a shell around it.','That charge and water shell keep Na⁺ out of the nonpolar core, so it needs a channel or a pump.']},
+ k:{title:'Potassium ion (K⁺)',svg:ionSVG('K⁺','var(--k)',30),
+  facts:['A potassium atom gives up its one outer electron, leaving a +1 charge: [K]⁺.','K⁺ is a little larger than Na⁺, and channel proteins can tell the two apart.','Like Na⁺, it can’t cross the bilayer on its own. It uses channels and the Na⁺/K⁺ pump.']},
+ glu:{title:'Glucose (C₆H₁₂O₆)',svg:`<svg viewBox="0 0 300 220"><line x1="110" y1="80" x2="178" y2="80" ${B}/><line x1="200" y1="88" x2="230" y2="120" ${B}/><line x1="70" y1="120" x2="110" y2="80" ${B}/>
+   <path d="M230 120 L190 160 L110 160 L70 120" fill="none" stroke="var(--ink)" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+   ${tx(190,88,'O','a-o',22)}
+   <line x1="110" y1="80" x2="110" y2="54" ${B}/>${tx(110,46,'CH₂OH','',16)}
+   <line x1="230" y1="120" x2="230" y2="94" ${B}/>${tx(230,88,'OH','a-o',16)}<line x1="230" y1="120" x2="230" y2="146" ${B}/>${tx(230,163,'H','',16)}
+   <line x1="190" y1="160" x2="190" y2="136" ${B}/>${tx(190,130,'H','',16)}<line x1="190" y1="160" x2="190" y2="186" ${B}/>${tx(190,203,'OH','a-o',16)}
+   <line x1="110" y1="160" x2="110" y2="136" ${B}/>${tx(110,130,'OH','a-o',16)}<line x1="110" y1="160" x2="110" y2="186" ${B}/>${tx(110,203,'H','',16)}
+   <line x1="70" y1="120" x2="70" y2="94" ${B}/>${tx(70,88,'H','',16)}<line x1="70" y1="120" x2="70" y2="146" ${B}/>${tx(70,163,'HO','a-o',16)}
+   ${cap(150,218,'β-glucose, ring form · each corner is a carbon')}</svg>`,
+  facts:['A six-carbon sugar, shown here in its ring form.','Its many –OH groups make it polar, and it is fairly large.','Too big and polar for the bilayer, so it crosses with carrier proteins like GLUT4 or the Na⁺–glucose cotransporter.']},
+ ins:{title:'Insulin',svg:insulinSVG(),
+  facts:['A small protein hormone: 51 amino acids in two chains, held together by disulfide (S–S) bonds.','Much too large for any transport protein, so pancreatic cells release it by exocytosis.','Insulin signals body cells to take in glucose from the blood.']},
+ ldl:{title:'LDL particle',tip:'Click to view particle',svg:ldlSVG(),
+  facts:['LDL (low-density lipoprotein) is a particle, not a single molecule. It carries cholesterol through the blood.','Its surface is one layer of phospholipids, heads facing the watery blood, plus a large protein.','LDL receptors bind that protein, and the cell takes in the whole particle by receptor-mediated endocytosis.']},
+ dot:{title:'Solutes',tip:'Click to learn more',svg:`<svg viewBox="0 0 300 120"><rect x="20" y="10" width="260" height="84" rx="12" fill="var(--ecf)" stroke="var(--line)"/>${[[50,30],[90,64],[140,40],[180,74],[220,36],[250,66],[70,78],[200,54]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="5" fill="var(--solute)"/>`).join('')}${cap(150,114,'Small dissolved particles spread through the fluid')}</svg>`,
+  facts:['A solute is any substance dissolved in water, such as ions, sugars or amino acids.','In this model, the dots stand for a mix of small dissolved particles.','Pinocytosis takes them in along with the fluid, without choosing.']},
+ lipid:{title:'Phospholipid',svg:lipidSVG(),
+  facts:['A phospholipid has a polar, hydrophilic head (choline + phosphate + glycerol) and two nonpolar, hydrophobic fatty acid tails.','In water, phospholipids form a bilayer: heads face the water inside and outside the cell, and tails hide in the middle.','A C=C double bond puts a kink in a tail. Kinks keep the lipids from packing tightly, which keeps the membrane fluid.']}
+};
+let mvReturn=null;
+function openMol(t,btn){const m=MOL[t];if(!m)return;mvReturn=btn||null;$('#mvTitle').textContent=m.title;$('#mvFig').innerHTML=m.svg;
+  const ul=$('#mvFacts');ul.innerHTML='';m.facts.forEach(f=>{const li=document.createElement('li');li.textContent=f;ul.append(li);});
+  $('#mv').hidden=false;$('#mvClose').focus();}
+function closeMol(){$('#mv').hidden=true;if(mvReturn)mvReturn.focus();}
+$('#mvClose').onclick=closeMol;$('#mv').addEventListener('click',e=>{if(e.target.id==='mv')closeMol();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#mv').hidden)closeMol();});
+
+/* ---------- home link (only on the website build) ---------- */
+if(document.documentElement.dataset.site){const h=$('#homeLink');$('#homeRow').hidden=false;
+  h.onclick=e=>{e.preventDefault();$('#leave').hidden=false;$('#leaveStay').focus();};
+  $('#leaveStay').onclick=()=>{$('#leave').hidden=true;h.focus();};
+  $('#leave').addEventListener('click',e=>{if(e.target.id==='leave'){$('#leave').hidden=true;}});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#leave').hidden){$('#leave').hidden=true;h.focus();}});}
+
+/* ---------- drag molecules ---------- */
+let drag=null;
+function canvasPt(e){const r=cv.getBoundingClientRect();return[(e.clientX-r.left)/r.width*W,(e.clientY-r.top)/r.height*H];}
+function pickAt(x,y){if(!S.parts||!stage||stage.id==='review')return null;let best=null,bd=1e9;
+  for(const p of S.parts){if(p.held||p.ves)continue;const d=Math.hypot(p.x-x,p.y-y);if(d<p.r+9&&d<bd){bd=d;best=p;}}return best;}
+cv.addEventListener('pointerdown',e=>{if(!started)return;const[x,y]=canvasPt(e);const p=pickAt(x,y);if(!p)return;
+  e.preventDefault();drag={p,dx:p.x-x,dy:p.y-y};p.held='drag';p.pore=null;p.vx=p.vy=0;cv.setPointerCapture(e.pointerId);cv.classList.add('grabbing');});
+cv.addEventListener('pointermove',e=>{const[x,y]=canvasPt(e);
+  if(drag){const p=drag.p;p.x=clamp(x+drag.dx,p.r,W-p.r);p.y=clamp(y+drag.dy,p.r,H-p.r);
+    if(stage.group==='bulk'&&stage.prof){p.y=Math.min(p.y,yTop+stage.prof(p.x)-p.r);}return;}
+  cv.classList.toggle('can-grab',started&&!!pickAt(x,y));});
+function endDrag(){if(!drag)return;const p=drag.p;p.held=null;p.vx=p.vy=0;
+  if(!PT[p.t].lipid&&stage.group!=='bulk'&&p.y+p.r>topLimit(p.x)&&p.y-p.r<botLimit(p.x))p.y=p.y<M?topLimit(p.x)-p.r:botLimit(p.x)+p.r;
+  drag=null;cv.classList.remove('grabbing');updateCounters();}
+cv.addEventListener('pointerup',endDrag);cv.addEventListener('pointercancel',endDrag);
+
+/* ---------- theme ---------- */
+function refreshTheme(){readColors();if(stage&&stage.id!=='review'){renderLegend();buildCounters();}}
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',refreshTheme);
+new MutationObserver(refreshTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+/* ---------- loop ---------- */
+let last=performance.now(),frame=0;
+function loop(now){const dt=Math.min(2.5,(now-last)/16.67);last=now;
+  if(stage&&stage.id!=='review'){ctx.setTransform(scale*dpr,0,0,scale*dpr,0,0);if(running)for(let k=0;k<speed;k++)stage.update(dt);stage.draw(running?dt*speed:0);if(drag){const p=drag.p;ctx.strokeStyle=C.ink;ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.beginPath();ctx.arc(p.x,p.y,p.r+6,0,7);ctx.stroke();ctx.setLineDash([]);}if(++frame%8===0)updateCounters();}
+  requestAnimationFrame(loop);}
+go(0);requestAnimationFrame(loop);
+})();
+</script>
+
+</body>
+</html>

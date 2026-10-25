@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Jaffe Labs</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,800&display=swap">
+<style>
+:root{--bg:#eef3f4;--paper:#fff;--ink:#132229;--muted:#56666e;--line:#d3dde0;--passive:#14808c;--head:#e6aa3c;--core:#f5e5c0;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#0b1316;--paper:#121d22;--ink:#e3ecef;--muted:#93a4ab;--line:#26363d;--passive:#4cc1cc;--head:#d69a35;--core:#3b3020;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;font-size:16px;line-height:1.5}
+main{max-width:960px;margin:0 auto;padding:40px max(16px,env(safe-area-inset-left,0px)) 60px max(16px,env(safe-area-inset-right,0px))}
+h1{font-family:"Bricolage Grotesque","Avenir Next",sans-serif;font-weight:800;font-size:clamp(2rem,5vw,2.8rem);line-height:1.05;margin:0 0 6px}
+.lead{color:var(--muted);margin:0 0 28px;max-width:56ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+a.card{display:flex;flex-direction:column;gap:6px;padding:18px;border-radius:16px;border:1px solid var(--line);background:var(--paper);color:inherit;text-decoration:none}
+a.card:hover,a.card:focus-visible{border-color:var(--passive);outline:none;box-shadow:inset 0 -3px 0 var(--passive)}
+.mark{width:42px;height:42px;border-radius:50%;background:radial-gradient(circle,var(--core) 0 28%,transparent 29%),repeating-conic-gradient(var(--head) 0 12deg,transparent 12deg 30deg)}
+.card b{font-size:1.15rem}.card span{color:var(--muted);font-size:.93rem}
+.tag{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--passive)}
+</style>
+</head>
+<body>
+<main>
+  <h1>Jaffe Labs</h1>
+  <p class="lead">Interactive biology models and games. Pick a lab to start. No login needed.</p>
+  <div class="grid">
+    <a class="card" href="membrane-transport/index.html"><div class="mark" aria-hidden="true"></div><span class="tag">AP Biology · Unit 2</span><b>Membrane Transport Lab</b><span>Eight live models, from simple diffusion to receptor-mediated endocytosis, plus a sorting challenge.</span></a>
+  </div>
+</main>
+</body>
+</html>
