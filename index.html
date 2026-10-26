@@ -6,8 +6,20 @@
 <title>Jaffe Labs</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,800&display=swap">
 <style>
-:root{--bg:#eef3f4;--paper:#fff;--ink:#132229;--muted:#56666e;--line:#d3dde0;--passive:#14808c;--head:#e6aa3c;--core:#f5e5c0;color-scheme:light}
-@media (prefers-color-scheme:dark){:root{--bg:#0b1316;--paper:#121d22;--ink:#e3ecef;--muted:#93a4ab;--line:#26363d;--passive:#4cc1cc;--head:#d69a35;--core:#3b3020;color-scheme:dark}}
+:root{--bg:#eef3f4;--paper:#fff;--ink:#132229;--muted:#56666e;--line:#d3dde0;--passive:#14808c;--head:#e6aa3c;--core:#f5e5c0;--active:#c25a14;--petal:#e5699a;--pollen:#f1c232;--leaf:#3f9a4f;--stripe:#2b2620;--wing:#e3f1f7;--wing-edge:#8aa4b0;color-scheme:light}
+.icon{display:block;width:48px;height:48px}
+.title-wrap{position:relative}
+.title-row{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.title-row h1{margin:0}
+.mascot{flex-shrink:0;width:clamp(68px,10vw,92px);height:auto;display:block}
+.secret{font:inherit;color:inherit;background:none;border:none;padding:0;margin:0;cursor:inherit;letter-spacing:inherit}
+.secret:focus{outline:none}.secret:focus-visible{outline:3px solid var(--passive);outline-offset:3px;border-radius:4px}
+.about{position:absolute;left:0;top:calc(100% + 6px);z-index:10;width:min(520px,100%);background:var(--paper);color:var(--ink);
+  border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.16);padding:18px 44px 18px 18px;font-size:.95rem;line-height:1.6}
+.about p{margin:0}
+.about-close{position:absolute;top:8px;right:8px;width:32px;height:32px;border:none;border-radius:8px;background:none;color:var(--muted);font-size:22px;line-height:1;cursor:pointer}
+.about-close:hover{background:var(--bg);color:var(--ink)}
+@media (prefers-color-scheme:dark){:root{--bg:#0b1316;--paper:#121d22;--ink:#e3ecef;--muted:#93a4ab;--line:#26363d;--passive:#4cc1cc;--head:#d69a35;--core:#3b3020;--active:#f08b47;--petal:#ef86b0;--pollen:#f1c232;--leaf:#5fbf6d;--stripe:#2b2620;--wing:#c9dde6;--wing-edge:#7f97a3;color-scheme:dark}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;font-size:16px;line-height:1.5}
 main{max-width:960px;margin:0 auto;padding:40px max(16px,env(safe-area-inset-left,0px)) 60px max(16px,env(safe-area-inset-right,0px))}
@@ -23,12 +35,95 @@ a.card:hover,a.card:focus-visible{border-color:var(--passive);outline:none;box-s
 </head>
 <body>
 <main>
-  <h1>Jaffe Labs</h1>
+  <div class="title-wrap">
+    <div class="title-row">
+    <h1><button type="button" class="secret" id="secret" aria-expanded="false" aria-controls="aboutNote">Jaffe</button> Labs</h1>
+    <svg class="mascot" viewBox="0 0 120 98" width="92" height="75" role="img" aria-label="A happy cartoon brain wearing glasses, holding a pencil and a test tube">
+      <!-- legs -->
+      <path d="M52 71 L49 86 M68 71 L71 86" stroke="#d06f8a" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+      <ellipse cx="46.5" cy="87.5" rx="5" ry="2.8" fill="#d06f8a"/><ellipse cx="73.5" cy="87.5" rx="5" ry="2.8" fill="#d06f8a"/>
+      <!-- arms -->
+      <path d="M32 58 L17 69 M88 58 L103 69" stroke="#d06f8a" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+      <!-- pencil -->
+      <g transform="translate(15 71) rotate(-22)">
+        <rect x="-3.2" y="-27" width="6.4" height="5" rx="1.5" fill="#e8879b"/>
+        <rect x="-3.2" y="-23" width="6.4" height="2.2" fill="#b9bcc0"/>
+        <rect x="-3.2" y="-21" width="6.4" height="25" fill="#f2c94c" stroke="#a88422" stroke-width="1"/>
+        <path d="M-3.2 4 L3.2 4 L0 10.5 Z" fill="#f3d9b1"/>
+        <path d="M-1.1 8.2 L1.1 8.2 L0 10.5 Z" fill="#3a2530"/>
+      </g>
+      <!-- test tube -->
+      <g transform="translate(105 71) rotate(16)">
+        <path d="M-4 -8 V1 A4 4 0 0 0 4 1 V-8 Z" fill="#2fb8a6"/>
+        <circle cx="0.5" cy="-12" r="1.3" fill="#2fb8a6"/><circle cx="-1.5" cy="-17" r="1" fill="#2fb8a6"/>
+        <path d="M-4 -24 V1 A4 4 0 0 0 4 1 V-24" fill="none" stroke="#5e9fb8" stroke-width="1.8"/>
+        <path d="M-6 -24 H6" stroke="#5e9fb8" stroke-width="2.4" stroke-linecap="round"/>
+      </g>
+      <!-- hands -->
+      <circle cx="15.5" cy="70.5" r="4" fill="#f4a7b9" stroke="#d06f8a" stroke-width="2"/>
+      <circle cx="104.5" cy="70.5" r="4" fill="#f4a7b9" stroke="#d06f8a" stroke-width="2"/>
+      <!-- brain -->
+      <path d="M30 58 C18 56 16 38 28 32 C28 18 44 12 54 18 C60 10 74 10 80 18 C92 14 104 24 100 36 C110 42 106 60 94 62 C92 72 78 76 70 70 C64 76 50 76 46 70 C36 74 26 68 30 58 Z" fill="#f4a7b9" stroke="#d06f8a" stroke-width="2.6" stroke-linejoin="round"/>
+      <path d="M60 17 C56 24 63 29 59 37" stroke="#d06f8a" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+      <path d="M35 33 C40 28 44 36 50 31 M68 29 C73 24 79 32 86 27 M27 46 C30 43 33 46 34 43 M86 43 C89 41 92 45 95 42" stroke="#d06f8a" stroke-width="2" stroke-linecap="round" fill="none"/>
+      <!-- face -->
+      <circle cx="42" cy="59" r="3.6" fill="#ef7f9e" opacity=".55"/><circle cx="78" cy="59" r="3.6" fill="#ef7f9e" opacity=".55"/>
+      <circle cx="50" cy="48" r="7.2" fill="#ffffff" fill-opacity=".55" stroke="#3a2530" stroke-width="2.4"/>
+      <circle cx="70" cy="48" r="7.2" fill="#ffffff" fill-opacity=".55" stroke="#3a2530" stroke-width="2.4"/>
+      <path d="M57.2 47 Q60 45 62.8 47" stroke="#3a2530" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <circle cx="50.5" cy="49" r="2.3" fill="#3a2530"/><circle cx="70.5" cy="49" r="2.3" fill="#3a2530"/>
+      <circle cx="51.4" cy="48" r=".8" fill="#ffffff"/><circle cx="71.4" cy="48" r=".8" fill="#ffffff"/>
+      <path d="M53.5 59 Q60 66 66.5 59" stroke="#3a2530" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+    </svg>
+    </div>
+    <div class="about" id="aboutNote" role="dialog" aria-label="About this site" hidden>
+      <button type="button" class="about-close" id="aboutClose" aria-label="Close">×</button>
+      <p>I am a science teacher who loves knowledge and the pursuit thereof. This page was launched on 10/24/2026, in my first full year teaching my own classroom. It owes much to other humans' hard work, for which I am grateful. That includes the unaccountable human efforts included in and on which depends my utilization of AI to create these digital resources. I hope you find these resources useful. Thank you for visiting.</p>
+    </div>
+  </div>
   <p class="lead">Interactive biology models and games. Pick a lab to start. No login needed.</p>
   <div class="grid">
-    <a class="card" href="membrane-transport/index.html"><div class="mark" aria-hidden="true"></div><span class="tag">AP Biology · Unit 2</span><b>Membrane Transport Lab</b><span>Eight live models, from simple diffusion to receptor-mediated endocytosis, plus a sorting challenge.</span></a>
-    <a class="card" href="symbiosis-sort/index.html"><div class="mark" aria-hidden="true"></div><span class="tag">GT Biology · Unit 3</span><b>Symbiosis Sort</b><span>Sort 16 real ocean partnerships into mutualism, commensalism, parasitism, and amensalism.</span></a>
+    <a class="card" href="membrane-transport/index.html"><svg class="icon" viewBox="0 0 48 48" width="48" height="48" aria-hidden="true">
+      <circle cx="24" cy="24" r="16" fill="var(--core)"/>
+      <circle cx="24" cy="24" r="18.2" fill="none" stroke="var(--head)" stroke-width="3.4" stroke-linecap="round" stroke-dasharray="0 3.81"/>
+      <circle cx="24" cy="24" r="13.6" fill="none" stroke="var(--head)" stroke-width="3.4" stroke-linecap="round" stroke-dasharray="0 3.56"/>
+      <circle cx="3.6" cy="3.6" r="2.8" fill="var(--passive)"/>
+      <path d="M8.5 8.5 L19 19 M19 19 L12.5 18 M19 19 L18 12.5" stroke="var(--passive)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <path d="M29 29 L39.5 39.5 M39.5 39.5 L33 38.5 M39.5 39.5 L38.5 33" stroke="var(--active)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <circle cx="44.4" cy="44.4" r="2.8" fill="var(--active)"/>
+    </svg><span class="tag">AP Biology · Unit 2</span><b>Membrane Transport Lab</b><span>Eight live models, from simple diffusion to receptor-mediated endocytosis, plus a sorting challenge.</span></a>
+    <a class="card" href="symbiosis-sort/index.html"><svg class="icon" viewBox="0 0 48 48" width="48" height="48" aria-hidden="true">
+      <defs><clipPath id="beeBody"><ellipse cx="36" cy="12.5" rx="6.5" ry="4.4"/></clipPath></defs>
+      <path d="M16 27 Q15 37 16 47" stroke="var(--leaf)" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+      <path d="M15.8 39 Q21 33.5 26 35.5 Q22 40.5 15.8 40.5 Z" fill="var(--leaf)"/>
+      <g fill="var(--petal)">
+        <circle cx="16" cy="15.6" r="5"/><circle cx="22.1" cy="20" r="5"/><circle cx="19.8" cy="27.2" r="5"/>
+        <circle cx="12.2" cy="27.2" r="5"/><circle cx="9.9" cy="20" r="5"/>
+      </g>
+      <circle cx="16" cy="22" r="3.8" fill="var(--pollen)"/>
+      <path d="M29 16.5 C25 21, 30.5 25.5, 24.5 22" stroke="var(--muted)" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="1.6 2.4" fill="none"/>
+      <g transform="rotate(-20 36 12.5)">
+        <ellipse cx="34.2" cy="7.6" rx="3.6" ry="2.4" transform="rotate(-25 34.2 7.6)" fill="var(--wing)" stroke="var(--wing-edge)" stroke-width="1"/>
+        <ellipse cx="38.2" cy="7.4" rx="3.6" ry="2.4" transform="rotate(18 38.2 7.4)" fill="var(--wing)" stroke="var(--wing-edge)" stroke-width="1"/>
+        <ellipse cx="36" cy="12.5" rx="6.5" ry="4.4" fill="var(--pollen)"/>
+        <g clip-path="url(#beeBody)" stroke="var(--stripe)" stroke-width="1.9"><path d="M34 7 V18 M37.4 7 V18"/></g>
+        <circle cx="43" cy="12.5" r="2.5" fill="var(--stripe)"/>
+      </g>
+    </svg><span class="tag">GT Biology · Unit 3</span><b>Symbiosis Sort</b><span>Sort 16 real ocean partnerships into mutualism, commensalism, parasitism, and amensalism.</span></a>
   </div>
 </main>
+<script>
+(function(){
+  const btn = document.getElementById("secret");
+  const note = document.getElementById("aboutNote");
+  const close = document.getElementById("aboutClose");
+  function open(){ note.hidden = false; btn.setAttribute("aria-expanded","true"); close.focus(); }
+  function shut(focusBack){ note.hidden = true; btn.setAttribute("aria-expanded","false"); if (focusBack) btn.focus(); }
+  btn.addEventListener("click", () => note.hidden ? open() : shut(false));
+  close.addEventListener("click", () => shut(true));
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !note.hidden) shut(true); });
+  document.addEventListener("click", e => { if (!note.hidden && !note.contains(e.target) && e.target !== btn) shut(false); });
+})();
+</script>
 </body>
 </html>
