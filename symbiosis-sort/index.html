@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en" data-site="1">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Symbiosis Sort</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Lexend:wght@500;700&display=swap">
+<style>
+/* Layout: one-screen board. 16 species cards ring the edge (6 top, 2 right, 6 bottom, 2 left); the center holds a reading strip and the four relationship boxes. */
+:root{
+  --bg:#e9f0f2; --surface:#ffffff; --ink:#10233a; --muted:#4a5d70; --line:#c3cfd8; --accent:#0e6b84;
+  --mut:#0b6e6e; --com:#2f5d9e; --par:#a4462b; --ame:#6b4c8a; --on-cat:#ffffff;
+  --good:#1d7a3e; --bad:#b3261e;
+  --display:'Lexend', 'Segoe UI', system-ui, sans-serif;
+  --body:'Atkinson Hyperlegible', 'Segoe UI', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d1820; --surface:#152430; --ink:#e6eef2; --muted:#9db0bf; --line:#2d4152; --accent:#5cc3d6;
+  --mut:#4cc3b5; --com:#86a9e6; --par:#ee8f6f; --ame:#c3a2e6; --on-cat:#0d1820;
+  --good:#5fd38b; --bad:#ff8a80; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0d1820; --surface:#152430; --ink:#e6eef2; --muted:#9db0bf; --line:#2d4152; --accent:#5cc3d6;
+  --mut:#4cc3b5; --com:#86a9e6; --par:#ee8f6f; --ame:#c3a2e6; --on-cat:#0d1820;
+  --good:#5fd38b; --bad:#ff8a80; color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0;box-sizing:border-box}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.app{height:100%;display:flex;flex-direction:column;gap:10px;padding-block:12px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{margin:0;font-family:var(--display);font-weight:700;font-size:30px;line-height:1.15;letter-spacing:-0.01em}
+.sub{margin:2px 0 0;color:var(--muted);font-size:15.5px}
+.actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.score{font-family:var(--display);font-weight:500;font-size:14px;font-variant-numeric:tabular-nums}
+.btn{border:1.5px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:700}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+
+.board{flex:1;min-height:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));
+  grid-template-rows:112px minmax(0,1fr) minmax(0,1fr) 112px;gap:8px}
+.slot{min-width:0;min-height:0;display:flex}
+.s1{grid-area:1/1}.s2{grid-area:1/2}.s3{grid-area:1/3}.s4{grid-area:1/4}.s5{grid-area:1/5}.s6{grid-area:1/6}
+.s7{grid-area:2/6}.s8{grid-area:3/6}
+.s9{grid-area:4/6}.s10{grid-area:4/5}.s11{grid-area:4/4}.s12{grid-area:4/3}.s13{grid-area:4/2}.s14{grid-area:4/1}
+.s15{grid-area:3/1}.s16{grid-area:2/1}
+.center{grid-column:2/6;grid-row:2/4;min-width:0;min-height:0;display:flex;flex-direction:column;gap:8px}
+
+.card{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--surface);border:1.5px solid var(--line);
+  border-radius:10px;overflow:hidden;padding:0;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;text-align:left;position:relative}
+.card:hover{border-color:var(--accent)}
+.card.selected{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.card.lifting{opacity:.35}
+.card img{flex:1;min-height:0;width:100%;object-fit:cover;display:block;pointer-events:none}
+.card .label{padding:4px 7px 5px;font-size:12px;line-height:1.25;font-weight:700;display:flex;gap:6px;align-items:baseline}
+.num{font-family:var(--display);font-weight:700;font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted);flex-shrink:0}
+.empty{flex:1;border:1.5px dashed var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;
+  color:var(--muted);font-family:var(--display);font-size:13px}
+
+.reader{background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:10px;display:flex;gap:12px;align-items:center;min-height:92px}
+.reader.grabbable{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.reader.grabbable:hover{border-color:var(--accent)}
+.reader.lifting{opacity:.5}
+.drag-tip{font-family:var(--body);font-weight:400;font-size:12px;color:var(--muted)}
+.zoom{flex-shrink:0;padding:0;border:none;background:none;cursor:zoom-in;display:flex;flex-direction:column;align-items:center;gap:3px}
+.zoom img{width:110px;height:64px;object-fit:cover;border-radius:6px;display:block;border:1.5px solid var(--line)}
+.zoom:hover img{border-color:var(--accent)}
+.zoom-tip{font-size:11.5px;font-weight:700;color:var(--accent);line-height:1}
+.lightbox{position:fixed;inset:0;z-index:100;background:rgba(6,14,20,.82);display:flex;align-items:center;justify-content:center;
+  padding:max(24px, env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(24px, env(safe-area-inset-left, 0px));cursor:zoom-out}
+.lightbox figure{margin:0;max-width:100%;max-height:100%;display:flex;flex-direction:column;gap:10px;cursor:default}
+.lightbox img{width:min(900px, 100%);height:auto;max-height:calc(100vh - 140px);object-fit:contain;border-radius:8px;display:block;background:var(--surface)}
+.lb-text{display:flex;flex-direction:column;gap:3px;min-width:0}
+.lb-credit{font-family:var(--body);font-weight:400;font-size:12.5px;color:#d5e1e8}
+.lb-credit a{color:#ffffff}
+.credits-btn{font-size:13px}
+.credits{position:fixed;inset:0;z-index:110;background:rgba(6,14,20,.6);display:flex;align-items:center;justify-content:center;padding:24px}
+.credits-card{width:min(640px,100%);max-height:100%;overflow:auto;background:var(--surface);color:var(--ink);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.credits-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.credits-head h3{margin:0;font-family:var(--display);font-size:19px}
+.credits-note{margin:0;color:var(--muted);font-size:13px}
+.credits ol{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;font-size:13.5px;line-height:1.4}
+.credits a{color:var(--accent)}
+.lightbox .lb-close{color:var(--ink);background:var(--surface);border-color:var(--surface);flex-shrink:0}
+.lightbox figcaption{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#ffffff;font-family:var(--display);font-weight:500;font-size:15px}
+.reader .txt{min-width:0;flex:1;font-size:14px;line-height:1.4}
+.reader .txt p{margin:0}
+.reader .hint{color:var(--muted)}
+.reader .row{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:3px}
+.reader .name{font-family:var(--display);font-weight:500;font-size:14px}
+.link{border:none;background:none;color:var(--accent);font-weight:700;cursor:pointer;padding:2px 4px;font-size:13px}
+
+.zones{flex:1;min-height:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:8px}
+.zone{--c:var(--mut);min-height:0;display:flex;flex-direction:column;border:2px solid var(--c);border-radius:10px;overflow:hidden;
+  background:color-mix(in srgb, var(--c) 9%, var(--surface));transition:box-shadow .12s}
+.zone.over{box-shadow:0 0 0 4px color-mix(in srgb, var(--c) 45%, transparent)}
+.zone[data-zone="com"]{--c:var(--com)}.zone[data-zone="par"]{--c:var(--par)}.zone[data-zone="ame"]{--c:var(--ame)}
+.zhead{background:var(--c);color:var(--on-cat);padding:7px 10px 8px;display:flex;flex-direction:column;gap:3px;flex-shrink:0}
+.ztop{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.ztop .spacer{flex:1}
+.zone{position:relative}
+.ex-btn{border:none;background:var(--on-cat);color:var(--c);border-radius:6px;padding:3px 9px;font-size:12px;font-weight:700;cursor:pointer}
+.ex-btn[aria-expanded="true"]{outline:2px solid var(--on-cat);outline-offset:2px}
+.ex-pop{position:absolute;left:8px;right:8px;top:40px;bottom:8px;z-index:5;background:var(--surface);color:var(--ink);
+  border:2px solid var(--c);border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.18);display:flex;flex-direction:column;overflow:hidden}
+.ex-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 6px 6px 12px;
+  background:color-mix(in srgb, var(--c) 14%, var(--surface));font-family:var(--display);font-weight:700;font-size:14px;color:var(--c)}
+.ex-close{border:none;background:none;color:var(--ink);font-size:20px;line-height:1;width:30px;height:30px;border-radius:6px;cursor:pointer}
+.ex-close:hover{background:color-mix(in srgb, var(--c) 18%, var(--surface))}
+.ex-pop ul{margin:0;padding:8px 12px 10px 28px;overflow:auto;display:flex;flex-direction:column;gap:8px;font-size:13.5px;line-height:1.4}
+.zhead h2{margin:0;font-family:var(--display);font-weight:700;font-size:16px}
+.sym{font-family:var(--display);font-weight:700;font-size:13px;background:var(--on-cat);color:var(--c);border-radius:5px;padding:1px 7px;white-space:nowrap}
+.zhead .def{margin:0;font-size:12.5px;line-height:1.3;overflow-wrap:break-word}
+.place{border:1.5px solid var(--on-cat);background:transparent;color:var(--on-cat);border-radius:6px;padding:2px 8px;font-size:12px;font-weight:700;cursor:pointer}
+.chips{flex:1;min-height:0;overflow:auto;padding:8px;display:flex;flex-wrap:wrap;align-content:flex-start;gap:6px}
+.chips .drop-hint{color:var(--muted);font-size:12.5px;align-self:center;margin:auto}
+.chip{width:52px;height:52px;padding:0;border:2px solid var(--line);border-radius:8px;overflow:hidden;position:relative;cursor:grab;
+  touch-action:none;user-select:none;-webkit-user-select:none;background:var(--surface)}
+.chip img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+.chip .cn{position:absolute;left:2px;top:2px;background:var(--surface);color:var(--ink);border-radius:4px;font-family:var(--display);
+  font-weight:700;font-size:11px;padding:0 4px;line-height:16px;font-variant-numeric:tabular-nums}
+.chip.selected{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.chip.lifting{opacity:.35}
+.chip.right{border-color:var(--good)}.chip.wrong{border-color:var(--bad)}
+.chip .mark{position:absolute;right:2px;bottom:2px;width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff}
+.chip.right .mark{background:var(--good)}.chip.wrong .mark{background:var(--bad)}
+:root[data-theme="dark"] .chip .mark{color:var(--bg)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .chip .mark{color:var(--bg)}}
+
+.ghost{position:fixed;z-index:50;width:72px;height:72px;border-radius:10px;overflow:hidden;pointer-events:none;
+  border:2px solid var(--accent);box-shadow:0 8px 20px rgba(0,0,0,.25);transform:translate(-50%,-50%) rotate(-3deg)}
+.ghost img{width:100%;height:100%;object-fit:cover;display:block}
+
+@media (max-width: 520px){
+  html,body{height:auto}
+  .app{height:auto}
+  .board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:none;grid-auto-rows:auto}
+  .slot{grid-area:auto !important;height:112px}
+  .center{grid-column:1/-1;grid-row:1;height:auto}
+  .zones{grid-template-columns:minmax(0,1fr);grid-template-rows:none}
+  .zone{min-height:130px}
+}
+@media (prefers-reduced-motion: reduce){.zone{transition:none}}
+.home-row{flex-basis:100%}
+.home-link{display:inline-block;text-decoration:none;font-size:13px;padding:5px 12px}
+.leave{position:fixed;inset:0;z-index:120;background:rgba(6,14,20,.6);display:flex;align-items:center;justify-content:center;padding:24px}
+.leave-card{width:min(420px,100%);background:var(--surface);color:var(--ink);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.leave-card h3{margin:0;font-family:var(--display);font-size:20px}
+.leave-card p{margin:0;font-size:15px;line-height:1.45}
+.leave-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.leave-actions a{text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <div class="home-row" id="homeRow" hidden><a class="btn home-link" id="homeLink" href="../index.html">← All labs</a></div>
+    <div>
+      <h1>Symbiosis Sort</h1>
+      <p class="sub">Click a card to read it. Drag it into the box in the center for the relationship it shows.</p>
+    </div>
+    <div class="actions">
+      <span class="score" id="score" aria-live="polite">0 of 16 sorted</span>
+      <button class="btn primary" id="check" type="button">Check my sort</button>
+      <button class="btn" id="reset" type="button">Reset</button>
+      <button class="link credits-btn" id="creditsBtn" type="button">Photo credits</button>
+    </div>
+  </header>
+  <main class="board" id="board">
+    <section class="center" aria-label="Sorting area">
+      <div class="reader" id="reader" aria-live="polite"></div>
+      <div class="zones" id="zones"></div>
+    </section>
+  </main>
+</div>
+
+<div class="leave" id="leave" hidden role="dialog" aria-modal="true" aria-labelledby="leaveTitle">
+  <div class="leave-card">
+    <h3 id="leaveTitle">Leave this lab?</h3>
+    <p>You’ll go back to the list of labs. Your sort here won’t be saved.</p>
+    <div class="leave-actions"><button class="btn" id="leaveStay" type="button">Stay here</button><a class="btn primary" id="leaveGo" href="../index.html">Leave lab</a></div>
+  </div>
+</div>
+
+<div class="credits" id="credits" role="dialog" aria-modal="true" aria-labelledby="creditsTitle" hidden>
+  <div class="credits-card">
+    <div class="credits-head"><h3 id="creditsTitle">Photo credits</h3><button type="button" class="btn cr-close">Close</button></div>
+    <p class="credits-note">All photos are from Wikimedia Commons and are used under the licenses listed. Photos are resized and cropped to fit the cards.</p>
+    <ol></ol>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Enlarged photo" hidden>
+  <figure>
+    <img src="" alt="">
+    <figcaption><span class="lb-text"><span class="lb-cap"></span><span class="lb-credit"></span></span><button type="button" class="btn lb-close">Close</button></figcaption>
+  </figure>
+</div>
+
+<script>
+const CARDS = [
+  {n:1, key:"egret", short:"Cattle egrets & cows", ans:"com", text:"Cattle egrets follow grazing cows across fields and sometimes ride on their backs. As the cows walk through tall grass, they flush out grasshoppers and other insects, and the egrets snap them up. The cows are not affected by the birds."},
+  {n:2, key:"zombieant", short:"Zombie-ant fungus & ant", ans:"par", text:"In tropical forests, spores of the fungus <i>Ophiocordyceps</i> infect carpenter ants. The fungus grows through the ant's body and takes over its behavior, making it climb a plant and clamp its jaws onto a leaf. The ant dies there, and a stalk grows from its head that showers spores onto ants below."},
+  {n:3, key:"clownfish", short:"Clownfish & anemone", ans:"mut", text:"Clownfish live among the stinging tentacles of sea anemones. A coat of mucus keeps them from being stung, so the tentacles shelter them from predators. In return, clownfish chase off fish that eat anemones, and their waste adds nutrients the anemone can use."},
+  {n:4, key:"walnut", short:"Black walnut & garden plants", ans:"ame", text:"Black walnut trees release a chemical called juglone from their roots, leaves, and fallen nut hulls. Tomatoes and many other plants growing near the tree wilt, turn yellow, and often die. The walnut tree is not affected."},
+  {n:5, key:"burdock", short:"Hooked burrs & fur", ans:"com", text:"Plants like burdock and avens package their seeds in burrs covered with tiny hooks. When a dog, deer, or other animal brushes past, the burrs catch in its fur and ride along until they fall off somewhere new, spreading the plant's seeds. The animal is not affected."},
+  {n:6, key:"yucca", short:"Yucca & yucca moth", ans:"mut", text:"A female yucca moth gathers pollen from one yucca flower, flies to another, and presses the pollen onto it. This is the only way yucca flowers get pollinated. She also lays her eggs in the flower, and her caterpillars eat some, but not all, of the seeds that develop."},
+  {n:7, key:"peacrab", short:"Pea crab & oyster", ans:"par", text:"In the Chesapeake Bay, a tiny crab called the oyster pea crab lives inside the shell of a living eastern oyster. It steals food that the oyster's gills have filtered from the water and can damage the gills. Oysters with pea crabs inside tend to grow more slowly."},
+  {n:8, key:"lichen", short:"Fungus & alga (lichen)", ans:"mut", text:"A lichen looks like one organism, but it is a fungus and an alga living together as a team. The alga makes sugar by photosynthesis and shares it with the fungus. The fungus shelters the alga and holds onto water and minerals, so the pair can grow on bare rock where neither does well alone."},
+  {n:9, key:"spanishmoss", short:"Spanish moss & live oak", ans:"com", text:"Spanish moss is not really a moss. It is a flowering plant that hangs from the branches of live oak trees and takes in water and nutrients from rain and air, not from the tree. The oak just gives it a place to hang and is not affected."},
+  {n:10, key:"penicillium", short:"Penicillium mold & bacteria", ans:"ame", text:"<i>Penicillium</i> is a mold that grows on foods like bread and fruit. It releases penicillin, a chemical that kills many kinds of bacteria growing nearby. The mold is not affected by the bacteria dying."},
+  {n:11, key:"honeyguide", short:"Honeyguide & honey hunters", ans:"mut", text:"In parts of Africa, a bird called the greater honeyguide leads people to wild bees' nests, calling and flying from tree to tree. The honey hunters break open the nest and take the honey. Then the bird eats the leftover beeswax and bee larvae, food it could not reach on its own."},
+  {n:12, key:"cowbird", short:"Cowbird & songbirds", ans:"par", text:"The brown-headed cowbird, common in Maryland, never builds a nest. Females lay their eggs in other songbirds' nests, and those birds raise the cowbird chicks as their own. The cowbird chicks often hatch first and grow faster, taking so much food that many of the host's own chicks starve."},
+  {n:13, key:"remora", short:"Remora & shark", ans:"com", text:"A remora has a flat sucking disk on top of its head that lets it hold onto a shark. The remora gets a free ride and eats scraps from the shark's meals. The shark is not noticeably helped or harmed."},
+  {n:14, key:"leafcutter", short:"Leafcutter ants & fungus", ans:"mut", text:"Leafcutter ants do not eat the leaves they carry. They chew them into a mulch and use it to grow a fungus in underground chambers, and the fungus is the ants' main food. The ants feed the fungus, weed out harmful molds, and carry it to every new nest they start."},
+  {n:15, key:"dodder", short:"Dodder & host plant", ans:"par", text:"Dodder is a plant with thin orange or yellow stems and almost no chlorophyll. It twines around other plants and pushes tiny structures into their stems to pull out water and sugars. Plants covered in dodder grow poorly and can die."},
+  {n:16, key:"mycorrhiza", short:"Fungi & tree roots", ans:"mut", text:"Most trees have fungi wrapped around and growing into their roots. The fungus's thin threads spread far through the soil, collecting water and minerals like phosphorus and passing them to the tree. The tree sends sugars it makes by photosynthesis down to the fungus."}
+].map(c => ({pos: "50% 50%", ...c, img: "photos/" + c.key + ".jpg"}));
+const CREDITS = {"egret": {"author": "PJeganathan", "license": "CC BY-SA 4.0", "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0", "page": "https://commons.wikimedia.org/wiki/File:Cattle_egret_Bubulcus_ibis_with_cow_JEG6111.jpg"}, "zombieant": {"author": "David P. Hughes, Maj-Britt Pontoppidan", "license": "CC BY 2.5", "licenseUrl": "https://creativecommons.org/licenses/by/2.5", "page": "https://commons.wikimedia.org/wiki/File:Ant_infected_by_Ophiocordyceps_unilateralis.png"}, "clownfish": {"author": "Nick Hobgood", "license": "CC BY-SA 3.0", "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0", "page": "https://commons.wikimedia.org/wiki/File:Amphiprion_ocellaris_%28Clown_anemonefish%29_by_Nick_Hobgood.jpg"}, "walnut": {"author": "Rhododendrites", "license": "CC BY-SA 4.0", "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0", "page": "https://commons.wikimedia.org/wiki/File:Black_walnut_in_Prospect_Park_%2892401p%29.jpg"}, "burdock": {"author": "Flobbadob", "license": "CC BY-SA 4.0", "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0", "page": "https://commons.wikimedia.org/wiki/File:Epizoochory_-_black_Labrador_with_hooked_Geum_fruits_in_his_fur.jpg"}, "yucca": {"author": "Marissa Calvert", "license": "CC BY 4.0", "licenseUrl": "https://creativecommons.org/licenses/by/4.0", "page": "https://commons.wikimedia.org/wiki/File:Tegeticula_yuccasella_-_Marissa_Calvert_01.jpg"}, "peacrab": {"author": "NOAA", "license": "Public domain", "licenseUrl": "", "page": "https://commons.wikimedia.org/wiki/File:Zaops_ostreum.jpg"}, "lichen": {"author": "Jakub Fryš", "license": "CC BY-SA 4.0", "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0", "page": "https://commons.wikimedia.org/wiki/File:Caloplaca.jpg"}, "spanishmoss": {"author": "Jason Hollinger", "license": "CC BY 2.0", "licenseUrl": "https://creativecommons.org/licenses/by/2.0", "page": "https://commons.wikimedia.org/wiki/File:Spanish_moss_in_live_oak_-_Flickr_-_pellaea.jpg"}, "penicillium": {"author": "Convallaria majalis", "license": "CC BY-SA 4.0", "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0", "page": "https://commons.wikimedia.org/wiki/File:Penicillia_on_Petri_dish.jpg"}, "honeyguide": {"author": "Dominic Sherony", "license": "CC BY-SA 2.0", "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0", "page": "https://commons.wikimedia.org/wiki/File:Greater_Honeyguide_%28Indicator_indicator%29_%2845663851145%29%2C_crop.jpg"}, "cowbird": {"author": "Galawebdesign", "license": "CC BY 3.0", "licenseUrl": "https://creativecommons.org/licenses/by/3.0", "page": "https://commons.wikimedia.org/wiki/File:Eastern_Phoebe-nest-Brown-headed-Cowbird-egg.jpg"}, "remora": {"author": "Duncan Wright", "license": "CC BY-SA 3.0", "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/", "page": "https://commons.wikimedia.org/wiki/File:Nurse_shark_with_remoras_%28cropped%29.jpg"}, "leafcutter": {"author": "Alex Wild", "license": "CC0", "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en", "page": "https://commons.wikimedia.org/wiki/File:Atta_laevigata_fungus_garden.jpg"}, "dodder": {"author": "Plant pests and diseases", "license": "CC0", "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en", "page": "https://commons.wikimedia.org/wiki/File:Dodder_%28Cuscuta_sp.%29_-_30357848026.jpg"}, "mycorrhiza": {"author": "Baranowska M, Pusz W, Korzeniewicz R.", "license": "CC BY 4.0", "licenseUrl": "https://creativecommons.org/licenses/by/4.0", "page": "https://commons.wikimedia.org/wiki/File:Ectomycorrhiza_in_common_cherry_%28Prunus_padus%29_2.png"}};
+
+const ZONES = [
+  {key:"mut", name:"Mutualism", sym:"+ / +", def:"Both species benefit.", ex:[
+    "Bacteria in your intestines receive nutrients from the food you eat, and they help you digest that food.",
+    "Bees drink nectar from flowers. While they feed, they carry pollen from flower to flower, which helps the plants reproduce."]},
+  {key:"com", name:"Commensalism", sym:"+ / 0", def:"One benefits. The other is not affected.", ex:[
+    "Birds nest in a hole in a tree. The birds get a safe place to raise their young, and the tree is not affected.",
+    "Barnacles attach to a whale's skin and get a free ride to waters full of food. The whale is not affected."]},
+  {key:"par", name:"Parasitism", sym:"+ / −", def:"One benefits. The other (the host) is harmed.", ex:[
+    "Fleas feed on a dog's blood, causing itching and possibly spreading disease.",
+    "A tapeworm lives in its host's intestines and absorbs nutrients from the host's food, so the host gets less nutrition."]},
+  {key:"ame", name:"Amensalism", sym:"− / 0", def:"One is harmed. The other is not affected.", ex:[
+    "A tall tree's dense shade keeps small plants on the ground beneath it from getting enough light to grow. The tree is not affected.",
+    "Cows walking the same path through a pasture every day trample the grass flat until it dies. The cows are not affected."]}
+];
+
+const state = { placed: {}, selected: null, checked: false };
+const byN = n => CARDS.find(c => c.n === n);
+const board = document.getElementById("board");
+const zonesEl = document.getElementById("zones");
+const reader = document.getElementById("reader");
+const scoreEl = document.getElementById("score");
+
+const CHECK_SVG = '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.2l2.3 2.3 4.7-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const X_SVG = '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3l-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+
+// Build the 16 edge slots once.
+const slots = {};
+CARDS.forEach(c => {
+  const s = document.createElement("div");
+  s.className = "slot s" + c.n;
+  board.appendChild(s);
+  slots[c.n] = s;
+});
+
+// Build the four boxes once.
+const chipLists = {};
+ZONES.forEach(z => {
+  const d = document.createElement("div");
+  d.className = "zone";
+  d.dataset.zone = z.key;
+  d.innerHTML = `<div class="zhead"><div class="ztop"><h2>${z.name}</h2><span class="sym">${z.sym}</span><span class="spacer"></span>
+    <button class="place" type="button" data-place="${z.key}" hidden></button>
+    <button class="ex-btn" type="button" data-ex="${z.key}" aria-expanded="false" aria-controls="ex-${z.key}">Examples</button></div>
+    <p class="def">${z.def}</p></div><div class="chips"></div>
+    <div class="ex-pop" id="ex-${z.key}" role="region" aria-label="${z.name} examples" hidden>
+      <div class="ex-head"><span>${z.name} examples</span><button type="button" class="ex-close" data-ex-close aria-label="Close examples">×</button></div>
+      <ul>${z.ex.map(t => `<li>${t}</li>`).join("")}</ul>
+    </div>`;
+  zonesEl.appendChild(d);
+  chipLists[z.key] = d.querySelector(".chips");
+});
+
+function render() {
+  CARDS.forEach(c => {
+    const s = slots[c.n];
+    if (state.placed[c.n]) {
+      s.innerHTML = `<div class="empty" aria-hidden="true">${c.n}</div>`;
+    } else {
+      s.innerHTML = `<button type="button" class="card${state.selected === c.n ? " selected" : ""}" data-card="${c.n}" aria-label="Card ${c.n}: ${c.short}">
+        <img src="${c.img}" alt="" draggable="false" style="object-position:${c.pos}"><span class="label"><span class="num">${c.n}</span><span>${c.short}</span></span></button>`;
+    }
+  });
+  ZONES.forEach(z => {
+    const list = CARDS.filter(c => state.placed[c.n] === z.key);
+    const el = chipLists[z.key];
+    if (!list.length) { el.innerHTML = '<span class="drop-hint">Drop cards here</span>'; }
+    else {
+      el.innerHTML = list.map(c => {
+        let cls = "chip";
+        if (state.selected === c.n) cls += " selected";
+        let mark = "";
+        if (state.checked) {
+          const ok = c.ans === z.key;
+          cls += ok ? " right" : " wrong";
+          mark = `<span class="mark">${ok ? CHECK_SVG : X_SVG}</span>`;
+        }
+        const verdict = state.checked ? (c.ans === z.key ? ", correct" : ", incorrect") : "";
+        return `<button type="button" class="${cls}" data-card="${c.n}" title="${c.short}" aria-label="Card ${c.n}: ${c.short}${verdict}">
+          <img src="${c.img}" alt="" draggable="false" style="object-position:${c.pos}"><span class="cn">${c.n}</span>${mark}</button>`;
+      }).join("");
+    }
+    const btn = zonesEl.querySelector(`[data-place="${z.key}"]`);
+    const show = state.selected && state.placed[state.selected] !== z.key;
+    btn.hidden = !show;
+    if (show) btn.textContent = `Put #${state.selected} here`;
+  });
+  renderReader();
+  renderScore();
+}
+
+function renderReader() {
+  const c = state.selected && byN(state.selected);
+  if (c) { reader.dataset.card = c.n; reader.classList.add("grabbable"); }
+  else { delete reader.dataset.card; reader.classList.remove("grabbable"); }
+  if (!c) {
+    reader.innerHTML = '<div class="txt"><p class="hint">No card selected.</p></div>';
+    return;
+  }
+  const back = state.placed[c.n] ? `<button class="link" type="button" id="returnBtn">Return to edge</button>` : "";
+  reader.innerHTML = `<button type="button" class="zoom" id="zoomBtn" aria-label="Enlarge photo: ${c.short}"><img src="${c.img}" alt="${c.short}" style="object-position:${c.pos}"><span class="zoom-tip">Click to enlarge</span></button><div class="txt"><div class="row"><span class="name">#${c.n} · ${c.short} <span class="drag-tip">· drag this box to sort</span></span>${back}</div><p>${c.text}</p></div>`;
+}
+
+function renderScore() {
+  const placedNs = Object.keys(state.placed).filter(k => state.placed[k]).map(Number);
+  if (!state.checked) { scoreEl.textContent = `${placedNs.length} of 16 sorted`; return; }
+  const right = placedNs.filter(n => byN(n).ans === state.placed[n]).length;
+  const left = 16 - placedNs.length;
+  if (right === 16) scoreEl.textContent = "16 of 16 correct. Nice work!";
+  else scoreEl.textContent = `${right} of ${placedNs.length} correct` + (left ? ` · ${left} still to sort` : "");
+}
+
+function place(n, zone) {
+  if (zone) state.placed[n] = zone; else delete state.placed[n];
+  state.checked = false;
+  state.selected = n;
+  render();
+}
+function select(n) { state.selected = state.selected === n ? null : n; render(); }
+
+// Buttons
+document.getElementById("check").addEventListener("click", () => { state.checked = true; render(); });
+document.getElementById("reset").addEventListener("click", () => { state.placed = {}; state.selected = null; state.checked = false; render(); });
+zonesEl.addEventListener("click", e => {
+  const b = e.target.closest("[data-place]");
+  if (b && state.selected) place(state.selected, b.dataset.place);
+  const exb = e.target.closest("[data-ex]");
+  if (exb) {
+    const pop = document.getElementById("ex-" + exb.dataset.ex);
+    const opening = pop.hidden;
+    closeExamples();
+    if (opening) { pop.hidden = false; exb.setAttribute("aria-expanded", "true"); }
+  }
+  if (e.target.closest("[data-ex-close]")) closeExamples(true);
+});
+function closeExamples(returnFocus) {
+  zonesEl.querySelectorAll(".ex-pop").forEach(p => {
+    if (p.hidden) return;
+    p.hidden = true;
+    const btn = zonesEl.querySelector(`[aria-controls="${p.id}"]`);
+    btn.setAttribute("aria-expanded", "false");
+    if (returnFocus) btn.focus();
+  });
+}
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeExamples(true); });
+document.addEventListener("pointerdown", e => {
+  if (!e.target.closest(".ex-pop") && !e.target.closest("[data-ex]")) closeExamples(false);
+});
+reader.addEventListener("click", e => {
+  if (e.target.id === "returnBtn" && state.selected) place(state.selected, null);
+  if (e.target.closest("#zoomBtn") && state.selected) openLightbox(byN(state.selected));
+});
+const lightbox = document.getElementById("lightbox");
+let lastFocus = null;
+function esc(s) { return String(s).replace(/[&<>"]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch])); }
+function creditHTML(c) {
+  const cr = CREDITS[c.key];
+  if (!cr) return "";
+  const lic = cr.licenseUrl ? `<a href="${esc(cr.licenseUrl)}" target="_blank" rel="noopener">${esc(cr.license)}</a>` : esc(cr.license);
+  return `Photo: <a href="${esc(cr.page)}" target="_blank" rel="noopener">${esc(cr.author)}</a> · ${lic}${cr.note ? " · " + esc(cr.note) : ""}`;
+}
+const creditsDlg = document.getElementById("credits");
+document.getElementById("creditsBtn").addEventListener("click", () => {
+  creditsDlg.querySelector("ol").innerHTML = CARDS.map(c => `<li><b>${esc(c.short)}</b>: ${creditHTML(c)}</li>`).join("");
+  creditsDlg.hidden = false;
+  creditsDlg.querySelector(".cr-close").focus();
+});
+creditsDlg.addEventListener("click", e => { if (e.target === creditsDlg || e.target.closest(".cr-close")) { creditsDlg.hidden = true; document.getElementById("creditsBtn").focus(); } });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !creditsDlg.hidden) creditsDlg.hidden = true; });
+function openLightbox(c) {
+  lastFocus = document.activeElement;
+  lightbox.querySelector("img").src = c.img;
+  lightbox.querySelector("img").alt = c.short;
+  lightbox.querySelector(".lb-cap").textContent = "#" + c.n + " · " + c.short;
+  lightbox.querySelector(".lb-credit").innerHTML = creditHTML(c);
+  lightbox.hidden = false;
+  lightbox.querySelector(".lb-close").focus();
+}
+function closeLightbox() {
+  lightbox.hidden = true;
+  if (lastFocus) lastFocus.focus();
+}
+lightbox.addEventListener("click", e => { if (e.target === lightbox || e.target.closest(".lb-close")) closeLightbox(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !lightbox.hidden) closeLightbox(); });
+// Keyboard activation of a card (Enter/Space) arrives as a click with detail 0.
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-card]");
+  if (el && el !== reader && e.detail === 0) select(Number(el.dataset.card));
+});
+
+// Drag and drop with pointer events (mouse, touch, pen)
+let drag = null, ghost = null, overZone = null;
+function zoneAt(x, y) { const el = document.elementFromPoint(x, y); return el ? el.closest("[data-zone]") : null; }
+function setOver(z) {
+  if (overZone === z) return;
+  if (overZone) overZone.classList.remove("over");
+  overZone = z;
+  if (overZone) overZone.classList.add("over");
+}
+document.addEventListener("pointerdown", e => {
+  const el = e.target.closest("[data-card]");
+  if (!el || e.button !== 0) return;
+  const innerBtn = e.target.closest("button");
+  if (innerBtn && innerBtn !== el) return; // zoom / return buttons inside the reader
+  drag = { n: Number(el.dataset.card), el, x: e.clientX, y: e.clientY, moved: false, fromReader: el === reader };
+  try { el.setPointerCapture(e.pointerId); } catch (_) {}
+});
+document.addEventListener("pointermove", e => {
+  if (!drag) return;
+  if (!drag.moved) {
+    if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;
+    drag.moved = true;
+    drag.el.classList.add("lifting");
+    ghost = document.createElement("div");
+    ghost.className = "ghost";
+    ghost.innerHTML = `<img src="${byN(drag.n).img}" alt="">`;
+    document.body.appendChild(ghost);
+  }
+  ghost.style.left = e.clientX + "px";
+  ghost.style.top = e.clientY + "px";
+  setOver(zoneAt(e.clientX, e.clientY));
+  e.preventDefault();
+});
+function endDrag(e, cancelled) {
+  if (!drag) return;
+  const d = drag; drag = null;
+  if (ghost) { ghost.remove(); ghost = null; }
+  const z = overZone; setOver(null);
+  if (!d.moved) { if (!cancelled && !d.fromReader) select(d.n); return; }
+  d.el.classList.remove("lifting");
+  if (cancelled || (d.fromReader && !z)) { render(); return; }
+  place(d.n, z ? z.dataset.zone : null);
+}
+document.addEventListener("pointerup", e => endDrag(e, false));
+document.addEventListener("pointercancel", e => endDrag(e, true));
+
+/* Home link (only on the website build) */
+if (document.documentElement.dataset.site) {
+  const h = document.getElementById("homeLink");
+  const leave = document.getElementById("leave");
+  const stay = document.getElementById("leaveStay");
+  document.getElementById("homeRow").hidden = false;
+  h.addEventListener("click", e => { e.preventDefault(); leave.hidden = false; stay.focus(); });
+  stay.addEventListener("click", () => { leave.hidden = true; h.focus(); });
+  leave.addEventListener("click", e => { if (e.target === leave) leave.hidden = true; });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !leave.hidden) { leave.hidden = true; h.focus(); } });
+}
+
+render();
+</script>
+</body>
+</html>
